@@ -109,3 +109,6 @@ dev-test-app/
 ## Objetivo
 
 Demostrar conocimientos de administración Linux, desarrollo web, APIs REST, bases de datos, Git, Docker y despliegue mediante contenedores.
+
+## Rama de prueba
+Cambio realizado para demostrar manejo de ramas con Git.
