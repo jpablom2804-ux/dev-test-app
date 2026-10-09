@@ -1,6 +1,8 @@
 # Dev Test - Catálogo de Productos
 
-Aplicación web full stack desarrollada como parte de una prueba técnica.
+Aplicación web Full Stack desarrollada como parte de una prueba técnica de Infraestructura y Desarrollo.
+
+El sistema permite administrar un catálogo de productos mediante una API REST, utilizando una arquitectura Frontend, Backend y Base de Datos contenerizada con Docker.
 
 ## Tecnologías
 
@@ -8,6 +10,8 @@ Aplicación web full stack desarrollada como parte de una prueba técnica.
 - React
 - Vite
 - JavaScript
+- React Router
+- Bootstrap
 
 ### Backend
 - Node.js
@@ -23,89 +27,122 @@ Aplicación web full stack desarrollada como parte de una prueba técnica.
 - Docker CE
 - Docker Compose
 - Git
+- GitHub
 
 ## Arquitectura
 
 Navegador
-   |
-   v
-React / Vite
-   |
-   v
-Express REST API
-   |
-   v
+    |
+    v
+React / Nginx
+    |
+    | /api
+    v
+Node.js / Express
+    |
+    v
 MariaDB
+
+La solución se ejecuta mediante Docker Compose utilizando tres servicios principales:
+
+- Frontend
+- Backend
+- MariaDB
 
 ## Funcionalidades
 
-El sistema permite administrar un catálogo de productos mediante operaciones CRUD:
-
-- Crear productos
-- Consultar productos
-- Editar productos
-- Eliminar productos
-- Validar datos
-- Mostrar mensajes de éxito y error
+- Inicio y cierre de sesión.
+- Visualización de productos.
+- Creación de productos.
+- Modificación de productos.
+- Eliminación lógica de productos.
+- Restauración de productos.
+- Búsqueda de productos.
+- Validación de datos.
+- Manejo de mensajes de éxito y error.
 
 ## API REST
 
-### Obtener productos
+### Autenticación
 
-GET /api/products
+POST /api/auth/login
+GET /api/auth/me
+POST /api/auth/logout
 
-### Obtener producto por ID
+### Productos
 
-GET /api/products/:id
-
-### Crear producto
-
-POST /api/products
-
-### Actualizar producto
-
-PUT /api/products/:id
-
-### Eliminar producto
-
+GET    /api/products
+GET    /api/products/deleted
+GET    /api/products/:id
+POST   /api/products
+PUT    /api/products/:id
 DELETE /api/products/:id
+PATCH  /api/products/:id/restore
 
 ## Códigos HTTP utilizados
 
 - 200 OK
 - 201 Created
 - 400 Bad Request
+- 401 Unauthorized
 - 404 Not Found
 - 500 Internal Server Error
 
-## Seguridad
+## Base de datos
 
-Las credenciales de la base de datos se administran mediante variables de entorno.
+La aplicación utiliza dos tablas principales:
 
-El archivo .env no se almacena en Git.
+- products
+- users
 
-Las consultas SQL utilizan parámetros para evitar concatenar directamente datos proporcionados por el usuario.
+La información se almacena en MariaDB y se conserva mediante un volumen Docker.
 
-## Estructura
+## Estructura general
 
 dev-test-app/
 ├── backend/
 │   ├── src/
-│   │   ├── server.js
-│   │   ├── db.js
-│   │   └── routes/
-│   │       └── products.js
-│   └── package.json
-│
+│   └── Dockerfile
 ├── frontend/
 │   ├── src/
-│   │   ├── App.jsx
-│   │   └── App.css
-│   └── package.json
-│
+│   ├── Dockerfile
+│   └── nginx.conf
+├── database/
+│   └── init.sql
+├── compose.yaml
 ├── .gitignore
 └── README.md
 
-## Objetivo
+## Configuración
 
-Demostrar conocimientos de administración Linux, desarrollo web, APIs REST, bases de datos, Git, Docker y despliegue mediante contenedores.
+Crear un archivo .env en la raíz del proyecto con las variables requeridas por compose.yaml.
+
+Las credenciales y secretos no se almacenan en el repositorio.
+
+## Ejecución
+
+Construir e iniciar la aplicación:
+
+docker compose up -d --build
+
+Verificar los servicios:
+
+docker compose ps
+
+Acceder a la aplicación:
+
+http://127.0.0.1:8080
+
+## Comandos útiles
+
+docker compose up -d
+docker compose stop
+docker compose start
+docker compose restart
+docker compose ps
+docker compose logs backend
+docker compose logs db
+
+## Control de versiones
+
+El proyecto utiliza Git y GitHub para control de versiones y manejo de ramas.
