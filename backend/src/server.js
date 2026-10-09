@@ -9,7 +9,9 @@ const productsRouter = require("./routes/products");
 const authRouter = require("./routes/auth");
 const authenticateToken = require("./middleware/auth");
 
-const app = express();
+const app = express(); 
+
+app.set("trust proxy", 1);
 
 // Middlewares generales
 app.use(cors());

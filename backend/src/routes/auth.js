@@ -1,18 +1,32 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const rateLimit = require("express-rate-limit");
 
 const pool = require("../db");
 const authenticateToken = require("../middleware/auth");
 
 const router = express.Router();
 
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true,
+  message: {
+    error: "Demasiados intentos de inicio de sesión. Intente nuevamente en 15 minutos."
+  }
+});
+
+
+
 
 // ==================================================
 // LOGIN
 // ==================================================
 
-router.post("/login", async (req, res) => {
+router.post("/login", loginLimiter, async (req, res) => {
   const { username, password } = req.body;
 
   if (
