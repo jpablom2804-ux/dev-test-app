@@ -761,3 +761,232 @@ body {
     padding-right: 14px;
   }
 }
+/* ==================================================
+   PRODUCT TABS
+   ================================================== */
+
+.product-tabs {
+  display: flex;
+  gap: 6px;
+
+  width: fit-content;
+
+  margin-bottom: 22px;
+
+  padding: 5px;
+
+  background: #e9edf3;
+  border-radius: 11px;
+}
+
+.product-tab {
+  min-width: 115px;
+
+  border: none;
+  border-radius: 8px;
+
+  padding: 9px 13px;
+
+  background: transparent;
+  color: #64748b;
+
+  font-size: 14px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+
+  transition: 0.15s ease;
+}
+
+.product-tab:hover {
+  color: #111827;
+}
+
+.product-tab.active {
+  background: white;
+  color: #111827;
+
+  box-shadow:
+    0 1px 3px rgba(15, 23, 42, 0.08);
+}
+
+.tab-count {
+  min-width: 22px;
+  height: 22px;
+
+  padding: 0 6px;
+
+  border-radius: 999px;
+
+  background: #dfe4ea;
+
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.product-tab.active .tab-count {
+  background: #111827;
+  color: white;
+}
+
+/* ==================================================
+   TRASH / RESTORE
+   ================================================== */
+
+.deleted-badge {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.restore-button {
+  min-height: 36px;
+
+  padding: 0 12px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+
+  background: white;
+  color: #374151;
+
+  font-size: 13px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.restore-button:hover {
+  background: #ecfdf3;
+  border-color: #bbf7d0;
+  color: #166534;
+}
+/* ==================================================
+   DELETE MODAL
+   ================================================== */
+
+.delete-modal {
+  width: 100%;
+  max-width: 470px;
+
+  background: white;
+  border-radius: 16px;
+
+  padding: 28px;
+
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.18);
+}
+
+.delete-modal-icon {
+  width: 48px;
+  height: 48px;
+
+  border-radius: 12px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: #fef2f2;
+  color: #dc2626;
+
+  margin-bottom: 18px;
+}
+
+.delete-modal-content h2 {
+  margin: 0 0 10px;
+
+  font-size: 21px;
+  font-weight: 700;
+
+  color: #111827;
+}
+
+.delete-modal-content p {
+  margin: 0 0 15px;
+
+  color: #4b5563;
+  line-height: 1.6;
+}
+
+.delete-info {
+  padding: 12px 14px;
+
+  border-radius: 9px;
+
+  background: #f8fafc;
+
+  color: #64748b;
+
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.delete-modal-actions {
+  margin-top: 24px;
+
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.danger-button {
+  min-height: 44px;
+
+  padding: 0 16px;
+
+  border: none;
+  border-radius: 10px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 8px;
+
+  background: #dc2626;
+  color: white;
+
+  font-size: 14px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background 0.15s ease,
+    transform 0.15s ease;
+}
+
+.danger-button:hover {
+  background: #b91c1c;
+  transform: translateY(-1px);
+}
+
+.danger-button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.empty-create-button {
+  margin-top: 18px;
+}

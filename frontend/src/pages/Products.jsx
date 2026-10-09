@@ -6,7 +6,8 @@ import {
   Trash2,
   Package,
   X,
-  AlertTriangle
+  AlertTriangle,
+  RotateCcw
 } from "lucide-react";
 
 const initialForm = {
@@ -17,34 +18,69 @@ const initialForm = {
 };
 
 function Products() {
-  const [products, setProducts] = useState([]);
-  const [form, setForm] = useState(initialForm);
+  // Productos
+  const [activeProducts, setActiveProducts] = useState([]);
+  const [deletedProducts, setDeletedProducts] = useState([]);
 
+  // Pestañas
+  const [activeTab, setActiveTab] = useState("active");
+
+  // Formulario
+  const [form, setForm] = useState(initialForm);
   const [editingId, setEditingId] = useState(null);
+
+  // Búsqueda
   const [search, setSearch] = useState("");
 
+  // Modal crear / editar
   const [modalOpen, setModalOpen] = useState(false);
+
+  // Modal eliminar
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState(null);
+
+  // Estados
   const [loading, setLoading] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
 
+  // Mensajes
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+
+  // ==================================================
+  // CARGAR PRODUCTOS
+  // ==================================================
 
   const loadProducts = async () => {
     try {
       setPageLoading(true);
       setError("");
 
-      const response = await fetch("/api/products");
-      const data = await response.json();
+      const [activeResponse, deletedResponse] =
+        await Promise.all([
+          fetch("/api/products"),
+          fetch("/api/products/deleted")
+        ]);
 
-      if (!response.ok) {
+      const activeData = await activeResponse.json();
+      const deletedData = await deletedResponse.json();
+
+      if (!activeResponse.ok) {
         throw new Error(
-          data.error || "No se pudieron cargar los productos"
+          activeData.error ||
+            "No se pudieron cargar los productos"
         );
       }
 
-      setProducts(data);
+      if (!deletedResponse.ok) {
+        throw new Error(
+          deletedData.error ||
+            "No se pudo cargar la papelera"
+        );
+      }
+
+      setActiveProducts(activeData);
+      setDeletedProducts(deletedData);
     } catch (error) {
       setError(error.message);
     } finally {
@@ -56,14 +92,27 @@ function Products() {
     loadProducts();
   }, []);
 
+  // ==================================================
+  // PRODUCTOS SEGÚN PESTAÑA
+  // ==================================================
+
+  const currentProducts =
+    activeTab === "active"
+      ? activeProducts
+      : deletedProducts;
+
+  // ==================================================
+  // BÚSQUEDA
+  // ==================================================
+
   const filteredProducts = useMemo(() => {
     const text = search.toLowerCase().trim();
 
     if (!text) {
-      return products;
+      return currentProducts;
     }
 
-    return products.filter((product) => {
+    return currentProducts.filter((product) => {
       return (
         product.nombre.toLowerCase().includes(text) ||
         (product.descripcion || "")
@@ -71,7 +120,11 @@ function Products() {
           .includes(text)
       );
     });
-  }, [products, search]);
+  }, [currentProducts, search]);
+
+  // ==================================================
+  // FORMULARIO
+  // ==================================================
 
   const handleChange = (event) => {
     setForm({
@@ -110,6 +163,10 @@ function Products() {
     setError("");
   };
 
+  // ==================================================
+  // CREAR / EDITAR
+  // ==================================================
+
   const handleSubmit = async (event) => {
     event.preventDefault();
 
@@ -143,7 +200,8 @@ function Products() {
 
       if (!response.ok) {
         throw new Error(
-          data.error || "No se pudo guardar el producto"
+          data.error ||
+            "No se pudo guardar el producto"
         );
       }
 
@@ -165,19 +223,38 @@ function Products() {
     }
   };
 
-  const deleteProduct = async (product) => {
-    const confirmed = window.confirm(
-      `¿Deseas eliminar "${product.nombre}"?`
-    );
+  // ==================================================
+  // MODAL ELIMINAR
+  // ==================================================
 
-    if (!confirmed) return;
+  const openDeleteModal = (product) => {
+    setProductToDelete(product);
+    setDeleteModalOpen(true);
+    setError("");
+    setMessage("");
+  };
+
+  const closeDeleteModal = () => {
+    if (loading) return;
+
+    setDeleteModalOpen(false);
+    setProductToDelete(null);
+  };
+
+  // ==================================================
+  // SOFT DELETE
+  // ==================================================
+
+  const deleteProduct = async () => {
+    if (!productToDelete || loading) return;
 
     try {
+      setLoading(true);
       setError("");
       setMessage("");
 
       const response = await fetch(
-        `/api/products/${product.id}`,
+        `/api/products/${productToDelete.id}`,
         {
           method: "DELETE"
         }
@@ -187,17 +264,69 @@ function Products() {
 
       if (!response.ok) {
         throw new Error(
-          data.error || "No se pudo eliminar el producto"
+          data.error ||
+            "No se pudo mover el producto a la papelera"
         );
       }
 
-      setMessage("Producto eliminado correctamente.");
+      setMessage(
+        `"${productToDelete.nombre}" fue movido a la papelera.`
+      );
+
+      setDeleteModalOpen(false);
+      setProductToDelete(null);
 
       await loadProducts();
     } catch (error) {
       setError(error.message);
+    } finally {
+      setLoading(false);
     }
   };
+
+  // ==================================================
+  // RESTAURAR
+  // ==================================================
+
+  const restoreProduct = async (product) => {
+    if (loading) return;
+
+    try {
+      setLoading(true);
+      setError("");
+      setMessage("");
+
+      const response = await fetch(
+        `/api/products/${product.id}/restore`,
+        {
+          method: "PATCH"
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error ||
+            "No se pudo restaurar el producto"
+        );
+      }
+
+      setMessage(
+        `"${product.nombre}" fue restaurado correctamente.`
+      );
+
+      await loadProducts();
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ==================================================
+  // ESTADO DE STOCK
+  // ==================================================
 
   const getStockStatus = (stock) => {
     const amount = Number(stock);
@@ -222,9 +351,25 @@ function Products() {
     };
   };
 
+  // ==================================================
+  // CAMBIAR PESTAÑA
+  // ==================================================
+
+  const changeTab = (tab) => {
+    setActiveTab(tab);
+    setSearch("");
+    setMessage("");
+    setError("");
+  };
+
+  // ==================================================
+  // RENDER
+  // ==================================================
+
   return (
     <div className="products-page">
 
+      {/* HEADER */}
       <div className="products-header">
         <div>
           <span className="page-eyebrow">
@@ -238,35 +383,80 @@ function Products() {
           </p>
         </div>
 
-        <button
-          className="primary-button"
-          onClick={openCreateModal}
-        >
-          <Plus size={18} />
-          Nuevo producto
-        </button>
+        {activeTab === "active" && (
+          <button
+            className="primary-button"
+            onClick={openCreateModal}
+          >
+            <Plus size={18} />
+            Nuevo producto
+          </button>
+        )}
       </div>
 
+      {/* TABS */}
+      <div className="product-tabs">
+
+        <button
+          className={
+            activeTab === "active"
+              ? "product-tab active"
+              : "product-tab"
+          }
+          onClick={() => changeTab("active")}
+        >
+          Activos
+
+          <span className="tab-count">
+            {activeProducts.length}
+          </span>
+        </button>
+
+        <button
+          className={
+            activeTab === "deleted"
+              ? "product-tab active"
+              : "product-tab"
+          }
+          onClick={() => changeTab("deleted")}
+        >
+          Papelera
+
+          <span className="tab-count">
+            {deletedProducts.length}
+          </span>
+        </button>
+
+      </div>
+
+      {/* MENSAJE DE ÉXITO */}
       {message && (
         <div className="feedback-message success-message">
           {message}
         </div>
       )}
 
-      {error && !modalOpen && (
+      {/* ERROR GENERAL */}
+      {error && !modalOpen && !deleteModalOpen && (
         <div className="feedback-message error-message">
           <AlertTriangle size={18} />
           {error}
         </div>
       )}
 
+      {/* TOOLBAR */}
       <div className="products-toolbar">
+
         <div className="search-box">
           <Search size={18} />
 
           <input
             type="text"
-            placeholder="Buscar por nombre o descripción..."
+            placeholder={
+              activeTab === "active"
+                ? "Buscar productos activos..."
+                : "Buscar en la papelera..."
+            }
             value={search}
             onChange={(event) =>
               setSearch(event.target.value)
@@ -276,30 +466,64 @@ function Products() {
 
         <div className="product-counter">
           <Package size={18} />
-          {filteredProducts.length} productos
+
+          {filteredProducts.length}
+
+          {activeTab === "active"
+            ? " productos activos"
+            : " en papelera"}
         </div>
+
       </div>
 
+      {/* TABLA */}
       <div className="products-card">
 
         {pageLoading ? (
+
           <div className="products-empty">
             <p>Cargando productos...</p>
           </div>
+
         ) : filteredProducts.length === 0 ? (
+
           <div className="products-empty">
+
             <div className="empty-icon">
-              <Package size={30} />
+              {activeTab === "active"
+                ? <Package size={30} />
+                : <Trash2 size={30} />}
             </div>
 
-            <h3>No hay productos</h3>
+            <h3>
+              {activeTab === "active"
+                ? "No hay productos"
+                : "La papelera está vacía"}
+            </h3>
 
             <p>
-              No encontramos productos que coincidan con tu búsqueda.
+              {activeTab === "active"
+                ? "No encontramos productos que coincidan con tu búsqueda."
+                : "No hay productos eliminados actualmente."}
             </p>
+
+            {activeTab === "active" &&
+              activeProducts.length === 0 && (
+                <button
+                  className="primary-button empty-create-button"
+                  onClick={openCreateModal}
+                >
+                  <Plus size={18} />
+                  Crear primer producto
+                </button>
+              )}
+
           </div>
+
         ) : (
+
           <div className="table-responsive">
+
             <table className="products-table">
 
               <thead>
@@ -308,6 +532,7 @@ function Products() {
                   <th>Precio</th>
                   <th>Stock</th>
                   <th>Estado</th>
+
                   <th className="actions-column">
                     Acciones
                   </th>
@@ -315,6 +540,7 @@ function Products() {
               </thead>
 
               <tbody>
+
                 {filteredProducts.map((product) => {
                   const stockStatus =
                     getStockStatus(product.stock);
@@ -324,6 +550,7 @@ function Products() {
 
                       <td>
                         <div className="product-info">
+
                           <div className="product-avatar">
                             <Package size={19} />
                           </div>
@@ -338,6 +565,7 @@ function Products() {
                                 "Sin descripción"}
                             </span>
                           </div>
+
                         </div>
                       </td>
 
@@ -353,51 +581,159 @@ function Products() {
                       </td>
 
                       <td>
-                        <span
-                          className={
-                            stockStatus.className
-                          }
-                        >
-                          {stockStatus.text}
-                        </span>
+
+                        {activeTab === "active" ? (
+
+                          <span
+                            className={
+                              stockStatus.className
+                            }
+                          >
+                            {stockStatus.text}
+                          </span>
+
+                        ) : (
+
+                          <span className="stock-badge deleted-badge">
+                            En papelera
+                          </span>
+
+                        )}
+
                       </td>
 
                       <td>
-                        <div className="table-actions">
+
+                        {activeTab === "active" ? (
+
+                          <div className="table-actions">
+
+                            <button
+                              className="icon-button"
+                              title="Editar producto"
+                              onClick={() =>
+                                openEditModal(product)
+                              }
+                            >
+                              <Pencil size={17} />
+                            </button>
+
+                            <button
+                              className="icon-button danger"
+                              title="Mover a papelera"
+                              onClick={() =>
+                                openDeleteModal(product)
+                              }
+                            >
+                              <Trash2 size={17} />
+                            </button>
+
+                          </div>
+
+                        ) : (
 
                           <button
-                            className="icon-button"
-                            title="Editar producto"
+                            className="restore-button"
                             onClick={() =>
-                              openEditModal(product)
+                              restoreProduct(product)
                             }
+                            disabled={loading}
                           >
-                            <Pencil size={17} />
+                            <RotateCcw size={16} />
+                            Restaurar
                           </button>
 
-                          <button
-                            className="icon-button danger"
-                            title="Eliminar producto"
-                            onClick={() =>
-                              deleteProduct(product)
-                            }
-                          >
-                            <Trash2 size={17} />
-                          </button>
+                        )}
 
-                        </div>
                       </td>
 
                     </tr>
                   );
                 })}
+
               </tbody>
 
             </table>
+
           </div>
+
         )}
 
       </div>
+
+      {/* ==================================================
+          MODAL ELIMINAR
+          ================================================== */}
+
+      {deleteModalOpen && productToDelete && (
+        <div
+          className="modal-backdrop-custom"
+          onMouseDown={closeDeleteModal}
+        >
+          <div
+            className="delete-modal"
+            onMouseDown={(event) =>
+              event.stopPropagation()
+            }
+          >
+
+            <div className="delete-modal-icon">
+              <Trash2 size={24} />
+            </div>
+
+            <div className="delete-modal-content">
+
+              <h2>Mover a papelera</h2>
+
+              <p>
+                ¿Deseas mover{" "}
+                <strong>
+                  {productToDelete.nombre}
+                </strong>{" "}
+                a la papelera?
+              </p>
+
+              <div className="delete-info">
+                El producto no se eliminará
+                permanentemente. Podrás restaurarlo
+                posteriormente desde la papelera.
+              </div>
+
+            </div>
+
+            <div className="delete-modal-actions">
+
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={closeDeleteModal}
+                disabled={loading}
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                className="danger-button"
+                onClick={deleteProduct}
+                disabled={loading}
+              >
+                <Trash2 size={17} />
+
+                {loading
+                  ? "Moviendo..."
+                  : "Mover a papelera"}
+              </button>
+
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ==================================================
+          MODAL CREAR / EDITAR
+          ================================================== */}
 
       {modalOpen && (
         <div
@@ -412,6 +748,7 @@ function Products() {
           >
 
             <div className="modal-header-custom">
+
               <div>
                 <span className="page-eyebrow">
                   {editingId
@@ -433,6 +770,7 @@ function Products() {
               >
                 <X size={20} />
               </button>
+
             </div>
 
             <form
@@ -441,6 +779,7 @@ function Products() {
             >
 
               <div className="form-field">
+
                 <label htmlFor="nombre">
                   Nombre
                 </label>
@@ -454,10 +793,13 @@ function Products() {
                   onChange={handleChange}
                   required
                   disabled={loading}
+                  maxLength={100}
                 />
+
               </div>
 
               <div className="form-field">
+
                 <label htmlFor="descripcion">
                   Descripción
                 </label>
@@ -470,12 +812,15 @@ function Products() {
                   onChange={handleChange}
                   disabled={loading}
                   rows="3"
+                  maxLength={255}
                 />
+
               </div>
 
               <div className="form-row">
 
                 <div className="form-field">
+
                   <label htmlFor="precio">
                     Precio
                   </label>
@@ -492,9 +837,11 @@ function Products() {
                     required
                     disabled={loading}
                   />
+
                 </div>
 
                 <div className="form-field">
+
                   <label htmlFor="stock">
                     Stock
                   </label>
@@ -504,12 +851,14 @@ function Products() {
                     name="stock"
                     type="number"
                     min="0"
+                    step="1"
                     placeholder="0"
                     value={form.stock}
                     onChange={handleChange}
                     required
                     disabled={loading}
                   />
+
                 </div>
 
               </div>
