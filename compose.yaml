@@ -35,6 +35,10 @@ services:
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: ${DB_DATABASE}
+      
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
+      COOKIE_SECURE: ${COOKIE_SECURE}
     depends_on:
       db:
         condition: service_healthy

@@ -1,281 +1,165 @@
-import { useEffect, useState } from "react";
+import {
+  useEffect,
+  useState
+} from "react";
+
+import {
+  Routes,
+  Route
+} from "react-router-dom";
+
+import Sidebar from "./components/Sidebar";
+import Dashboard from "./pages/Dashboard";
+import Products from "./pages/Products";
+import Login from "./pages/Login";
+
 import "./App.css";
 
-const initialForm = {
-  nombre: "",
-  descripcion: "",
-  precio: "",
-  stock: ""
-};
-
 function App() {
-  const [products, setProducts] = useState([]);
-  const [form, setForm] = useState(initialForm);
-  const [editingId, setEditingId] = useState(null);
-  const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [user, setUser] = useState(null);
 
-  const loadProducts = async () => {
-    try {
-      const response = await fetch("/api/products");
-      const data = await response.json();
+  const [checkingSession, setCheckingSession] =
+    useState(true);
 
-      if (!response.ok) {
-        throw new Error(data.error || "Error cargando productos");
-      }
+  const [loggingOut, setLoggingOut] =
+    useState(false);
 
-      setProducts(data);
-    } catch (error) {
-      setMessage(error.message);
-    }
-  };
+  // ==================================================
+  // COMPROBAR SESIÓN
+  // ==================================================
 
   useEffect(() => {
-    loadProducts();
+    const checkSession = async () => {
+      try {
+        const response = await fetch(
+          "/api/auth/me",
+          {
+            credentials: "include"
+          }
+        );
+
+        if (!response.ok) {
+          setUser(null);
+          return;
+        }
+
+        const data = await response.json();
+
+        setUser(data.user);
+
+      } catch (error) {
+        console.error(
+          "Error comprobando sesión:",
+          error
+        );
+
+        setUser(null);
+
+      } finally {
+        setCheckingSession(false);
+      }
+    };
+
+    checkSession();
   }, []);
 
-  const handleChange = (event) => {
-    setForm({
-      ...form,
-      [event.target.name]: event.target.value
-    });
-  };
+  // ==================================================
+  // LOGOUT
+  // ==================================================
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-
-    if (loading) return;
-
-    setLoading(true);
-    setMessage(
-      editingId
-        ? "Actualizando producto..."
-        : "Guardando producto..."
-    );
-
-    const method = editingId ? "PUT" : "POST";
-
-    const url = editingId
-      ? `/api/products/${editingId}`
-      : "/api/products";
+  const handleLogout = async () => {
+    if (loggingOut) return;
 
     try {
-      const response = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          nombre: form.nombre,
-          descripcion: form.descripcion,
-          precio: Number(form.precio),
-          stock: Number(form.stock)
-        })
-      });
+      setLoggingOut(true);
 
-      const data = await response.json();
+      const response = await fetch(
+        "/api/auth/logout",
+        {
+          method: "POST",
+          credentials: "include"
+        }
+      );
 
       if (!response.ok) {
-        throw new Error(data.error || "Error procesando producto");
+        throw new Error(
+          "No se pudo cerrar la sesión"
+        );
       }
 
-      setMessage(data.message);
-      setForm(initialForm);
-      setEditingId(null);
+      setUser(null);
 
-      await loadProducts();
     } catch (error) {
-      setMessage(error.message);
+      console.error(
+        "Error cerrando sesión:",
+        error
+      );
+
     } finally {
-      setLoading(false);
+      setLoggingOut(false);
     }
   };
 
-  const editProduct = (product) => {
-    setEditingId(product.id);
+  // ==================================================
+  // CARGANDO SESIÓN
+  // ==================================================
 
-    setForm({
-      nombre: product.nombre,
-      descripcion: product.descripcion || "",
-      precio: product.precio,
-      stock: product.stock
-    });
+  if (checkingSession) {
+    return (
+      <div className="session-loading">
+        <div className="session-loader" />
 
-    setMessage(`Editando producto ${product.id}`);
-  };
-
-  const deleteProduct = async (id) => {
-    if (loading) return;
-
-    const confirmDelete = window.confirm(
-      "¿Desea eliminar este producto?"
+        <p>Comprobando sesión...</p>
+      </div>
     );
+  }
 
-    if (!confirmDelete) return;
+  // ==================================================
+  // SIN AUTENTICACIÓN
+  // ==================================================
 
-    setLoading(true);
-    setMessage("Eliminando producto...");
+  if (!user) {
+    return (
+      <Login
+        onLogin={(authenticatedUser) =>
+          setUser(authenticatedUser)
+        }
+      />
+    );
+  }
 
-    try {
-      const response = await fetch(`/api/products/${id}`, {
-        method: "DELETE"
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Error eliminando producto");
-      }
-
-      setMessage(data.message);
-
-      await loadProducts();
-    } catch (error) {
-      setMessage(error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const cancelEdit = () => {
-    setEditingId(null);
-    setForm(initialForm);
-    setMessage("");
-  };
+  // ==================================================
+  // APLICACIÓN AUTENTICADA
+  // ==================================================
 
   return (
-    <main className="container">
+    <div className="app-layout">
 
-      <h1>Catálogo de productos</h1>
+      <Sidebar
+        user={user}
+        onLogout={handleLogout}
+        loggingOut={loggingOut}
+      />
 
-      <p className="subtitle">
-        React + Express + MariaDB
-      </p>
+      <main className="main-content">
 
-      <form onSubmit={handleSubmit} className="product-form">
+        <Routes>
 
-        <input
-          name="nombre"
-          placeholder="Nombre"
-          value={form.nombre}
-          onChange={handleChange}
-          required
-          disabled={loading}
-        />
+          <Route
+            path="/"
+            element={<Dashboard />}
+          />
 
-        <input
-          name="descripcion"
-          placeholder="Descripción"
-          value={form.descripcion}
-          onChange={handleChange}
-          disabled={loading}
-        />
+          <Route
+            path="/products"
+            element={<Products />}
+          />
 
-        <input
-          name="precio"
-          type="number"
-          step="0.01"
-          min="0"
-          placeholder="Precio"
-          value={form.precio}
-          onChange={handleChange}
-          required
-          disabled={loading}
-        />
+        </Routes>
 
-        <input
-          name="stock"
-          type="number"
-          min="0"
-          placeholder="Stock"
-          value={form.stock}
-          onChange={handleChange}
-          required
-          disabled={loading}
-        />
+      </main>
 
-        <button type="submit" disabled={loading}>
-          {loading
-            ? "Procesando..."
-            : editingId
-              ? "Actualizar"
-              : "Crear producto"}
-        </button>
-
-        {editingId && (
-          <button
-            type="button"
-            onClick={cancelEdit}
-            disabled={loading}
-          >
-            Cancelar
-          </button>
-        )}
-
-      </form>
-
-      {message && (
-        <p className="message">
-          {message}
-        </p>
-      )}
-
-      <table>
-
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Nombre</th>
-            <th>Descripción</th>
-            <th>Precio</th>
-            <th>Stock</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-
-        <tbody>
-
-          {products.map((product) => (
-
-            <tr key={product.id}>
-
-              <td>{product.id}</td>
-              <td>{product.nombre}</td>
-              <td>{product.descripcion}</td>
-
-              <td>
-                ${Number(product.precio).toFixed(2)}
-              </td>
-
-              <td>{product.stock}</td>
-
-              <td>
-
-                <button
-                  onClick={() => editProduct(product)}
-                  disabled={loading}
-                >
-                  Editar
-                </button>
-
-                <button
-                  onClick={() => deleteProduct(product.id)}
-                  disabled={loading}
-                >
-                  Eliminar
-                </button>
-
-              </td>
-
-            </tr>
-
-          ))}
-
-        </tbody>
-
-      </table>
-
-    </main>
+    </div>
   );
 }
 
