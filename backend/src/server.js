@@ -7,6 +7,9 @@ require("dotenv").config();
 const pool = require("./db");
 const productsRouter = require("./routes/products");
 const authRouter = require("./routes/auth");
+
+const salesRouter = require("./routes/sales");
+
 const authenticateToken = require("./middleware/auth");
 
 const app = express(); 
@@ -50,11 +53,16 @@ app.get("/health", async (req, res) => {
 // Autenticación pública
 app.use("/api/auth", authRouter);
 
-// Productos protegidos con JWT
 app.use(
-    "/api/products",
-    authenticateToken,
-    productsRouter
+  "/api/products",
+  authenticateToken,
+  productsRouter
+);
+
+app.use(
+  "/api/sales",
+  authenticateToken,
+  salesRouter
 );
 
 const PORT = process.env.PORT || 3000;

@@ -18,3 +18,15 @@ CREATE TABLE IF NOT EXISTS users (
     role VARCHAR(30) NOT NULL DEFAULT 'admin',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS sales (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    product_id INT NOT NULL,
+    cantidad INT NOT NULL,
+    precio_unitario DECIMAL(10,2) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_sales_product
+        FOREIGN KEY (product_id)
+        REFERENCES products(id)
+);

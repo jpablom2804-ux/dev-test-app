@@ -1,5 +1,8 @@
 import { NavLink } from "react-router-dom";
-import { LogOut } from "lucide-react";
+import {
+  LogOut,
+  ShoppingCart
+} from "lucide-react";
 
 function Sidebar({
   user,
@@ -44,6 +47,17 @@ function Sidebar({
             }
           >
             Productos
+          </NavLink>
+          <NavLink
+            to="/sales"
+            className={({ isActive }) =>
+              isActive
+                ? "nav-item active"
+                : "nav-item"
+            }
+          >
+            <ShoppingCart size={17} />
+            Ventas
           </NavLink>
         </nav>
       </div>

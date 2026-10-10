@@ -11,6 +11,7 @@ import {
 import Sidebar from "./components/Sidebar";
 import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
+import Sales from "./pages/Sales";
 import Login from "./pages/Login";
 
 import "./App.css";
@@ -145,17 +146,22 @@ function App() {
 
         <Routes>
 
-          <Route
-            path="/"
-            element={<Dashboard />}
-          />
+  <Route
+    path="/"
+    element={<Dashboard />}
+  />
 
-          <Route
-            path="/products"
-            element={<Products />}
-          />
+  <Route
+    path="/products"
+    element={<Products />}
+  />
 
-        </Routes>
+  <Route
+    path="/sales"
+    element={<Sales />}
+  />
+
+</Routes>
 
       </main>
 
