@@ -1,17 +1,102 @@
+# ==================================================
+# SERVICIOS DE LA APLICACIÓN
+# ==================================================
+#
+# Docker Compose administra tres contenedores:
+#
+# Frontend
+#    ↓
+# Backend
+#    ↓
+# MariaDB
+#
+# Cada servicio se ejecuta en su propio contenedor.
+#
 services:
 
+
+  # ==================================================
+  # BASE DE DATOS - MARIADB
+  # ==================================================
+
   db:
+
+    # Utilizamos una imagen oficial de MariaDB
+    # versión 11 desde Docker Hub.
     image: mariadb:11
+
+    # Nombre que tendrá el contenedor.
     container_name: dev-test-db
+
+
+    # ==================================================
+    # VARIABLES DE ENTORNO DE MARIADB
+    # ==================================================
+    #
+    # Los valores reales vienen desde el archivo .env.
+    #
+    # Esto evita escribir contraseñas directamente
+    # dentro del archivo Compose.
+    #
     environment:
+
+      # Contraseña del usuario root de MariaDB.
       MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+
+      # Base de datos que MariaDB creará
+      # inicialmente.
       MARIADB_DATABASE: ${DB_DATABASE}
+
+      # Usuario que utilizará la aplicación.
       MARIADB_USER: ${DB_USER}
+
+      # Contraseña del usuario de la aplicación.
       MARIADB_PASSWORD: ${DB_PASSWORD}
+
+
+    # ==================================================
+    # VOLÚMENES
+    # ==================================================
+
     volumes:
+
+      # Guarda físicamente los datos de MariaDB
+      # en un volumen administrado por Docker.
+      #
+      # Gracias a esto, los datos sobreviven aunque
+      # el contenedor sea eliminado y recreado.
       - mariadb_data:/var/lib/mysql
+
+
+      # Este archivo SQL se ejecuta durante
+      # la inicialización inicial de MariaDB.
+      #
+      # Se utiliza para crear tablas como:
+      #
+      # products
+      # users
+      # sales
+      #
+      # :ro significa "read only".
+      #
+      # El contenedor puede leer el archivo,
+      # pero no modificarlo.
       - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+
+    # ==================================================
+    # HEALTH CHECK
+    # ==================================================
+    #
+    # Docker comprobará periódicamente si
+    # MariaDB realmente está listo para recibir
+    # conexiones.
+    #
+    # Esto es diferente de que el contenedor
+    # simplemente esté encendido.
+    #
     healthcheck:
+
       test:
         [
           "CMD",
@@ -19,40 +104,219 @@ services:
           "--connect",
           "--innodb_initialized"
         ]
+
+      # Ejecuta la comprobación cada 10 segundos.
       interval: 10s
+
+      # Cada comprobación puede durar
+      # un máximo de 5 segundos.
       timeout: 5s
+
+      # Después de 10 fallos consecutivos,
+      # Docker marcará el servicio como unhealthy.
       retries: 10
+
+
+    # ==================================================
+    # POLÍTICA DE REINICIO
+    # ==================================================
+    #
+    # Docker intentará iniciar nuevamente
+    # el contenedor si se detiene inesperadamente.
+    #
+    # No lo reiniciará si nosotros lo detenemos
+    # explícitamente.
     restart: unless-stopped
+
+
+
+  # ==================================================
+  # BACKEND - NODE.JS / EXPRESS
+  # ==================================================
 
   backend:
+
+    # ==================================================
+    # CONSTRUIR IMAGEN
+    # ==================================================
+    #
+    # Docker utilizará el Dockerfile que se encuentra
+    # dentro de la carpeta ./backend.
     build:
       context: ./backend
+
+
+    # Nombre del contenedor.
     container_name: dev-test-backend
+
+
+    # ==================================================
+    # VARIABLES DE ENTORNO DEL BACKEND
+    # ==================================================
+
     environment:
+
+      # Puerto interno donde escucha Express.
       PORT: 3000
+
+
+      # ------------------------------------------------
+      # CONEXIÓN A MARIADB
+      # ------------------------------------------------
+
+      # IMPORTANTE:
+      #
+      # DB_HOST no es localhost.
+      #
+      # Utilizamos "db" porque ese es el nombre
+      # del servicio de MariaDB dentro de Compose.
+      #
+      # Docker Compose proporciona una red interna
+      # y permite resolver los servicios por nombre.
       DB_HOST: db
+
+      # Puerto interno de MariaDB.
       DB_PORT: 3306
+
+      # Credenciales obtenidas desde .env.
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
+
+      # Nombre de la base de datos.
       DB_NAME: ${DB_DATABASE}
-      
+
+
+      # ------------------------------------------------
+      # AUTENTICACIÓN JWT
+      # ------------------------------------------------
+
+      # Secreto utilizado para firmar y verificar
+      # los tokens JWT.
       JWT_SECRET: ${JWT_SECRET}
+
+      # Tiempo de duración del JWT.
+      #
+      # Ejemplo:
+      #
+      # 8h
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
+
+      # Define si la cookie JWT debe enviarse
+      # únicamente mediante HTTPS.
+      #
+      # Desarrollo local HTTP:
+      # false
+      #
+      # Producción con HTTPS:
+      # true
       COOKIE_SECURE: ${COOKIE_SECURE}
+
+
+    # ==================================================
+    # DEPENDENCIA CON MARIADB
+    # ==================================================
+    #
+    # Backend depende de db.
+    #
+    # Pero no solamente espera que el contenedor
+    # de MariaDB exista.
+    #
+    # condition: service_healthy
+    #
+    # hace que espere hasta que el healthcheck
+    # indique que MariaDB está realmente listo.
+    #
     depends_on:
+
       db:
         condition: service_healthy
+
+
+    # Reinicia el Backend si falla,
+    # excepto si fue detenido manualmente.
     restart: unless-stopped
+
+
+
+  # ==================================================
+  # FRONTEND - REACT + NGINX
+  # ==================================================
 
   frontend:
+
+    # Docker construye la imagen utilizando
+    # el Dockerfile de ./frontend.
     build:
       context: ./frontend
+
+
+    # Nombre del contenedor.
     container_name: dev-test-frontend
+
+
+    # ==================================================
+    # PUERTOS
+    # ==================================================
+    #
+    # Formato:
+    #
+    # HOST:CONTENEDOR
+    #
+    # 8080:80 significa:
+    #
+    # navegador
+    # ↓
+    # puerto 8080 del Rocky Linux
+    # ↓
+    # puerto 80 del Nginx del contenedor
+    #
     ports:
       - "8080:80"
+
+
+    # ==================================================
+    # DEPENDENCIA CON BACKEND
+    # ==================================================
+    #
+    # Indica que el Frontend depende
+    # del servicio Backend.
+    #
+    # Docker iniciará Backend antes
+    # de iniciar Frontend.
+    #
     depends_on:
       - backend
+
+
+    # Reinicia el Frontend si falla,
+    # excepto si fue detenido manualmente.
     restart: unless-stopped
 
+
+
+# ==================================================
+# VOLÚMENES
+# ==================================================
+#
+# Aquí declaramos los volúmenes utilizados
+# por los servicios.
+#
 volumes:
+
+
+  # ==================================================
+  # VOLUMEN DE MARIADB
+  # ==================================================
+  #
+  # Guarda permanentemente:
+  #
+  # - tablas;
+  # - productos;
+  # - usuarios;
+  # - ventas;
+  # - datos internos de MariaDB.
+  #
+  # Aunque el contenedor dev-test-db sea recreado,
+  # este volumen puede conservar la información.
+  #
   mariadb_data:
