@@ -2,8 +2,6 @@
 // DEPENDENCIAS
 // ==================================================
 
-// Express permite crear el router que agrupa
-// todos los endpoints relacionados con ventas.
 const express = require("express");
 
 // Pool de conexiones hacia MariaDB.
@@ -11,22 +9,9 @@ const pool = require("../db");
 
 
 // ==================================================
-// ROUTER DE VENTAS
+// ROUTER
 // ==================================================
 
-// Este router se monta desde server.js en:
-//
-// /api/sales
-//
-// Por lo tanto:
-//
-// router.post("/")      → POST /api/sales
-// router.get("/")       → GET  /api/sales
-// router.get("/summary")→ GET  /api/sales/summary
-//
-// En server.js todas estas rutas pasan primero por
-// authenticateToken, por lo que están protegidas
-// mediante JWT.
 const router = express.Router();
 
 
@@ -36,74 +21,57 @@ const router = express.Router();
 //
 // POST /api/sales
 //
-// Recibe:
-//
-// {
-//   "product_id": 5,
-//   "cantidad": 2
-// }
-//
-// Esta operación hace dos cambios relacionados:
-//
-// 1. Guarda la venta.
-// 2. Descuenta el stock.
-//
-// Por eso utilizamos una transacción.
-//
 // Flujo:
 //
-// Validar datos
+// recibir producto + cantidad
 // ↓
-// obtener conexión
+// validar datos
 // ↓
-// BEGIN TRANSACTION
+// iniciar transacción
 // ↓
-// SELECT producto FOR UPDATE
+// bloquear producto
 // ↓
-// verificar producto y stock
+// comprobar stock
 // ↓
-// INSERT venta
+// guardar venta
 // ↓
-// UPDATE stock
+// descontar stock
 // ↓
 // COMMIT
 //
+// La transacción garantiza que:
+// INSERT venta + UPDATE stock
+// funcionen como una sola operación.
+//
 router.post("/", async (req, res) => {
 
-  // Extraemos los datos enviados
-  // desde el Frontend.
+  // Obtenemos los valores enviados
+  // por el Frontend.
   const {
     product_id,
     cantidad
   } = req.body;
 
 
-  // ==================================================
-  // NORMALIZAR DATOS
-  // ==================================================
+  // Convertimos los valores a Number.
+  const productId =
+    Number(product_id);
 
-  // Convertimos ambos valores a Number.
-  //
-  // Esto permite trabajar correctamente aunque
-  // eventualmente lleguen como texto numérico.
-  const productId = Number(product_id);
-  const quantity = Number(cantidad);
+  const quantity =
+    Number(cantidad);
 
 
   // ==================================================
   // VALIDAR PRODUCTO
   // ==================================================
 
-  // product_id debe ser:
-  //
-  // - un número entero;
-  // - mayor que cero.
   if (
     !Number.isInteger(productId) ||
     productId <= 0
   ) {
+
     return res.status(400).json({
-      error: "El producto es inválido"
+      error: "Producto inválido"
     });
   }
 
@@ -112,18 +80,11 @@ router.post("/", async (req, res) => {
   // VALIDAR CANTIDAD
   // ==================================================
 
-  // No podemos vender:
-  //
-  // 0 unidades
-  // cantidades negativas
-  // cantidades decimales
-  //
-  // Por eso cantidad debe ser
-  // un entero mayor que cero.
   if (
     !Number.isInteger(quantity) ||
     quantity <= 0
   ) {
+
     return res.status(400).json({
       error:
         "La cantidad debe ser un número entero mayor que 0"
@@ -131,9 +92,10 @@ router.post("/", async (req, res) => {
   }
 
 
-  // Aquí almacenaremos la conexión
-  // obtenida desde el pool.
+  // Variable donde guardaremos
+  // la conexión dedicada.
   let connection;
+
 
   try {
 
@@ -141,12 +103,6 @@ router.post("/", async (req, res) => {
     // OBTENER CONEXIÓN
     // ==================================================
 
-    // En este caso utilizamos una conexión específica
-    // porque varias consultas deben formar parte
-    // de la MISMA transacción.
-    //
-    // No sería adecuado ejecutar cada operación
-    // independientemente con pool.query().
     connection =
       await pool.getConnection();
 
@@ -155,48 +111,28 @@ router.post("/", async (req, res) => {
     // INICIAR TRANSACCIÓN
     // ==================================================
 
-    // Una transacción hace que varias operaciones
-    // se comporten como una sola unidad.
-    //
-    // Queremos garantizar que:
-    //
-    // INSERT venta
-    // +
-    // UPDATE stock
-    //
-    // funcionen juntos.
-    //
-    // Si alguno falla:
-    // ROLLBACK
-    //
-    // Si ambos funcionan:
-    // COMMIT
     await connection.beginTransaction();
 
 
     // ==================================================
-    // BUSCAR Y BLOQUEAR PRODUCTO
+    // CONSULTAR Y BLOQUEAR PRODUCTO
     // ==================================================
-
-    // Buscamos el producto antes de registrar la venta.
     //
-    // FOR UPDATE bloquea temporalmente esta fila
-    // mientras la transacción está activa.
+    // FOR UPDATE bloquea temporalmente
+    // esta fila mientras dura la transacción.
     //
-    // Esto ayuda a evitar problemas de concurrencia.
+    // Esto evita problemas como:
     //
-    // Ejemplo:
+    // stock = 1
     //
-    // Stock = 1
+    // Usuario A quiere comprar 1
+    // Usuario B quiere comprar 1
     //
-    // Usuario A intenta vender 1
-    // Usuario B intenta vender 1
+    // Sin bloqueo ambos podrían leer stock = 1.
     //
-    // Sin bloqueo ambos podrían leer stock = 1
-    // al mismo tiempo.
+    // Con FOR UPDATE uno debe esperar
+    // a que termine el otro.
     //
-    // Con FOR UPDATE, una transacción espera
-    // mientras la otra termina.
     const products =
       await connection.query(
         `
@@ -214,47 +150,34 @@ router.post("/", async (req, res) => {
       );
 
 
+    const product =
+      products[0];
+
+
     // ==================================================
-    // VALIDAR EXISTENCIA DEL PRODUCTO
+    // PRODUCTO NO DISPONIBLE
     // ==================================================
 
-    // No permitimos ventas cuando:
-    //
-    // - el producto no existe;
-    // - el producto fue eliminado mediante Soft Delete.
+    // Si no existe o fue enviado
+    // a la papelera, no permitimos venderlo.
     if (
-      products.length === 0 ||
-      Number(products[0].activo) !== 1
+      !product ||
+      Number(product.activo) !== 1
     ) {
 
-      // Deshacemos la transacción antes
-      // de abandonar la operación.
       await connection.rollback();
 
       return res.status(404).json({
         error:
-          "Producto no encontrado"
+          "Producto no encontrado o no disponible"
       });
     }
-
-
-    // Obtenemos el producto encontrado.
-    const product = products[0];
 
 
     // ==================================================
     // VALIDAR STOCK
     // ==================================================
 
-    // No permitimos vender más unidades
-    // de las disponibles actualmente.
-    //
-    // Ejemplo:
-    //
-    // stock = 3
-    // cantidad solicitada = 5
-    //
-    // → HTTP 400
     if (
       Number(product.stock) <
       quantity
@@ -270,36 +193,23 @@ router.post("/", async (req, res) => {
 
 
     // ==================================================
-    // REGISTRAR VENTA
+    // GUARDAR VENTA
     // ==================================================
-
-    // Guardamos:
     //
-    // product_id
-    // cantidad
-    // precio_unitario
+    // Guardamos precio_unitario porque queremos
+    // conservar el precio histórico.
     //
-    // El precio_unitario se copia desde products
-    // en el momento exacto de la venta.
+    // No necesitamos indicar estado porque
+    // MariaDB utiliza automáticamente:
     //
-    // Esto es importante para mantener
-    // el historial correctamente.
+    // estado = 'completada'
     //
-    // Ejemplo:
+    // gracias al DEFAULT definido en init.sql.
     //
-    // Hoy:
-    // Mouse = $20
-    // venta = $20
-    //
-    // Mañana:
-    // Mouse cambia a $30
-    //
-    // La venta anterior debe continuar diciendo $20.
     const result =
       await connection.query(
         `
-        INSERT INTO sales
-        (
+        INSERT INTO sales (
           product_id,
           cantidad,
           precio_unitario
@@ -318,15 +228,6 @@ router.post("/", async (req, res) => {
     // DESCONTAR STOCK
     // ==================================================
 
-    // Reducimos del inventario
-    // las unidades que acabamos de vender.
-    //
-    // Ejemplo:
-    //
-    // stock = 10
-    // venta = 3
-    //
-    // nuevo stock = 7
     await connection.query(
       `
       UPDATE products
@@ -343,14 +244,14 @@ router.post("/", async (req, res) => {
     // ==================================================
     // CONFIRMAR TRANSACCIÓN
     // ==================================================
-
-    // Hasta este punto:
     //
-    // venta insertada ✓
-    // stock actualizado ✓
+    // Solamente después de que:
     //
-    // COMMIT confirma permanentemente
-    // ambos cambios en MariaDB.
+    // - se guardó la venta;
+    // - se actualizó el stock;
+    //
+    // confirmamos los cambios.
+    //
     await connection.commit();
 
 
@@ -358,17 +259,15 @@ router.post("/", async (req, res) => {
     // RESPUESTA EXITOSA
     // ==================================================
 
-    // HTTP 201 porque acabamos de crear
-    // un nuevo recurso: una venta.
     return res.status(201).json({
+
       message:
         "Venta registrada correctamente",
 
       sale: {
 
-        // ID generado automáticamente
-        // para la nueva venta.
-        id: Number(result.insertId),
+        id:
+          Number(result.insertId),
 
         product_id:
           productId,
@@ -382,23 +281,24 @@ router.post("/", async (req, res) => {
         precio_unitario:
           Number(product.precio),
 
-        // Calculamos el stock que debe quedar
-        // después de realizar la venta.
         stock_restante:
           Number(product.stock) -
-          quantity
+          quantity,
+
+        estado:
+          "completada"
       }
     });
+
 
   } catch (error) {
 
     // ==================================================
-    // ERROR Y ROLLBACK
+    // ERROR EN LA TRANSACCIÓN
     // ==================================================
 
-    // Si ocurre cualquier excepción durante
-    // la transacción, intentamos deshacer
-    // los cambios realizados.
+    // Si algo falla después de iniciar
+    // la transacción, intentamos revertirla.
     if (connection) {
 
       try {
@@ -407,8 +307,6 @@ router.post("/", async (req, res) => {
 
       } catch (rollbackError) {
 
-        // Si incluso el rollback falla,
-        // dejamos evidencia en los logs.
         console.error(
           "Error haciendo rollback:",
           rollbackError
@@ -417,20 +315,17 @@ router.post("/", async (req, res) => {
     }
 
 
-    // Registramos el error real en los logs
-    // del Backend.
     console.error(
       "Error registrando venta:",
       error
     );
 
 
-    // Al cliente enviamos un mensaje
-    // genérico para no exponer información interna.
     return res.status(500).json({
       error:
         "Error interno al registrar la venta"
     });
+
 
   } finally {
 
@@ -438,8 +333,8 @@ router.post("/", async (req, res) => {
     // LIBERAR CONEXIÓN
     // ==================================================
 
-    // Tanto si la venta funciona como si falla,
-    // devolvemos la conexión al pool.
+    // La conexión vuelve al pool
+    // para poder ser reutilizada.
     if (connection) {
       connection.release();
     }
@@ -448,186 +343,333 @@ router.post("/", async (req, res) => {
 
 
 // ==================================================
-// RESUMEN DE VENTAS PARA DASHBOARD
+// ANULAR UNA VENTA
 // ==================================================
 //
-// GET /api/sales/summary
+// PATCH /api/sales/:id/cancel
 //
-// Este endpoint no modifica información.
+// Ejemplo:
 //
-// Devuelve datos agregados que utiliza
-// el Dashboard:
+// PATCH /api/sales/4/cancel
 //
-// - total de unidades vendidas;
-// - productos más vendidos;
-// - ventas recientes.
+// No eliminamos físicamente la venta.
 //
-router.get(
-  "/summary",
+// En su lugar:
+//
+// estado = 'anulada'
+// anulada_at = CURRENT_TIMESTAMP
+//
+// Además debemos devolver al inventario
+// las unidades que originalmente se descontaron.
+//
+// Ejemplo:
+//
+// Venta original:
+// 4 iPhones
+//
+// stock:
+// 10 → 6
+//
+// Anular:
+//
+// stock:
+// 6 → 10
+//
+// Todo ocurre dentro de una transacción.
+//
+router.patch(
+  "/:id/cancel",
   async (req, res) => {
+
+    // ==================================================
+    // VALIDAR ID
+    // ==================================================
+
+    const saleId =
+      Number(req.params.id);
+
+
+    if (
+      !Number.isInteger(saleId) ||
+      saleId <= 0
+    ) {
+
+      return res.status(400).json({
+        error: "ID de venta inválido"
+      });
+    }
+
 
     let connection;
 
+
     try {
+
+      // ==================================================
+      // OBTENER CONEXIÓN
+      // ==================================================
 
       connection =
         await pool.getConnection();
 
 
       // ==================================================
-      // TOTAL DE UNIDADES VENDIDAS
+      // INICIAR TRANSACCIÓN
       // ==================================================
 
-      // SUM(cantidad) suma todas las unidades
-      // registradas en la tabla sales.
+      await connection.beginTransaction();
+
+
+      // ==================================================
+      // BUSCAR Y BLOQUEAR VENTA
+      // ==================================================
       //
-      // COALESCE(..., 0) evita devolver NULL
-      // cuando todavía no existen ventas.
+      // FOR UPDATE evita que dos solicitudes
+      // intenten anular la misma venta
+      // exactamente al mismo tiempo.
       //
-      // Sin ventas:
-      //
-      // SUM(cantidad) → NULL
-      //
-      // Con COALESCE:
-      //
-      // NULL → 0
-      const totals =
-        await connection.query(`
+      const sales =
+        await connection.query(
+          `
           SELECT
-            COALESCE(
-              SUM(cantidad),
-              0
-            ) AS unidades_vendidas
+            id,
+            product_id,
+            cantidad,
+            estado
           FROM sales
-        `);
+          WHERE id = ?
+          FOR UPDATE
+          `,
+          [saleId]
+        );
+
+
+      const sale =
+        sales[0];
 
 
       // ==================================================
-      // PRODUCTOS MÁS VENDIDOS
+      // VENTA NO EXISTE
       // ==================================================
 
-      // Relacionamos sales con products
-      // utilizando product_id.
+      if (!sale) {
+
+        await connection.rollback();
+
+        return res.status(404).json({
+          error: "Venta no encontrada"
+        });
+      }
+
+
+      // ==================================================
+      // EVITAR DOBLE ANULACIÓN
+      // ==================================================
       //
-      // Luego agrupamos las ventas de cada producto
-      // y sumamos sus cantidades.
-      const topProducts =
-        await connection.query(`
+      // Esto es fundamental.
+      //
+      // Si permitiéramos anular dos veces:
+      //
+      // Venta:
+      // 4 unidades
+      //
+      // primera anulación:
+      // stock +4
+      //
+      // segunda anulación:
+      // stock +4 otra vez
+      //
+      // Eso produciría inventario incorrecto.
+      //
+      if (sale.estado !== "completada") {
+
+        await connection.rollback();
+
+        return res.status(409).json({
+          error:
+            "Esta venta ya fue anulada"
+        });
+      }
+
+
+      // ==================================================
+      // BLOQUEAR PRODUCTO
+      // ==================================================
+      //
+      // También bloqueamos el producto antes
+      // de modificar su stock.
+      //
+      const products =
+        await connection.query(
+          `
           SELECT
-            p.id,
-            p.nombre,
-            SUM(s.cantidad)
-              AS unidades_vendidas
-          FROM sales s
-
-          INNER JOIN products p
-            ON p.id = s.product_id
-
-          GROUP BY
-            p.id,
-            p.nombre
-
-          ORDER BY
-            unidades_vendidas DESC,
-            p.nombre ASC
-
-          LIMIT 5
-        `);
+            id,
+            stock
+          FROM products
+          WHERE id = ?
+          FOR UPDATE
+          `,
+          [sale.product_id]
+        );
 
 
-      // ==================================================
-      // VENTAS RECIENTES
-      // ==================================================
+      const product =
+        products[0];
 
-      // Relacionamos la venta con products
-      // para mostrar también el nombre
-      // del producto.
+
+      // La clave foránea debería garantizar
+      // que el producto exista.
       //
-      // Ordenamos primero por fecha y luego por ID
-      // para obtener las ventas más recientes.
-      const recentSales =
-        await connection.query(`
-          SELECT
-            s.id,
-            s.product_id,
-            p.nombre AS producto,
-            s.cantidad,
-            s.precio_unitario,
-            s.created_at
-          FROM sales s
+      // Aun así comprobamos por seguridad.
+      if (!product) {
 
-          INNER JOIN products p
-            ON p.id = s.product_id
+        await connection.rollback();
 
-          ORDER BY
-            s.created_at DESC,
-            s.id DESC
-
-          LIMIT 5
-        `);
+        return res.status(500).json({
+          error:
+            "No se encontró el producto asociado a la venta"
+        });
+      }
 
 
       // ==================================================
-      // RESPUESTA DEL DASHBOARD
+      // DEVOLVER STOCK
       // ==================================================
-
-      // Algunos tipos devueltos por MariaDB,
-      // especialmente DECIMAL y resultados de SUM(),
-      // pueden no llegar como Number de JavaScript.
       //
-      // Por eso normalizamos los valores antes
-      // de enviarlos al Frontend.
+      // La cantidad que había sido descontada
+      // vuelve al inventario.
+      //
+      // Ejemplo:
+      //
+      // stock actual = 6
+      // venta = 4
+      //
+      // 6 + 4 = 10
+      //
+      await connection.query(
+        `
+        UPDATE products
+        SET stock = stock + ?
+        WHERE id = ?
+        `,
+        [
+          Number(sale.cantidad),
+          sale.product_id
+        ]
+      );
+
+
+      // ==================================================
+      // MARCAR VENTA COMO ANULADA
+      // ==================================================
+
+      const updateResult =
+        await connection.query(
+          `
+          UPDATE sales
+          SET
+            estado = 'anulada',
+            anulada_at = CURRENT_TIMESTAMP
+          WHERE id = ?
+            AND estado = 'completada'
+          `,
+          [saleId]
+        );
+
+
+      // Esta comprobación agrega una capa adicional
+      // de seguridad.
+      if (
+        updateResult.affectedRows === 0
+      ) {
+
+        await connection.rollback();
+
+        return res.status(409).json({
+          error:
+            "La venta no pudo ser anulada"
+        });
+      }
+
+
+      // ==================================================
+      // CONFIRMAR TODO
+      // ==================================================
+      //
+      // Solamente ahora quedan permanentes:
+      //
+      // stock restaurado
+      // +
+      // venta anulada
+      //
+      await connection.commit();
+
+
+      // Calculamos el nuevo stock
+      // para incluirlo en la respuesta.
+      const newStock =
+        Number(product.stock) +
+        Number(sale.cantidad);
+
+
+      // ==================================================
+      // RESPUESTA
+      // ==================================================
+
       return res.status(200).json({
 
-        unidades_vendidas:
-          Number(
-            totals[0]
-              .unidades_vendidas
-          ),
+        message:
+          "Venta anulada correctamente",
 
-        productos_mas_vendidos:
-          topProducts.map(
-            (product) => ({
-              ...product,
+        sale: {
+          id:
+            saleId,
 
-              unidades_vendidas:
-                Number(
-                  product
-                    .unidades_vendidas
-                )
-            })
-          ),
+          estado:
+            "anulada",
 
-        ventas_recientes:
-          recentSales.map(
-            (sale) => ({
-              ...sale,
+          unidades_reintegradas:
+            Number(sale.cantidad),
 
-              cantidad:
-                Number(
-                  sale.cantidad
-                ),
-
-              precio_unitario:
-                Number(
-                  sale
-                    .precio_unitario
-                )
-            })
-          )
+          stock_actual:
+            newStock
+        }
       });
+
 
     } catch (error) {
 
+      // ==================================================
+      // ERROR
+      // ==================================================
+
+      if (connection) {
+
+        try {
+
+          await connection.rollback();
+
+        } catch (rollbackError) {
+
+          console.error(
+            "Error haciendo rollback:",
+            rollbackError
+          );
+        }
+      }
+
+
       console.error(
-        "Error consultando resumen de ventas:",
+        "Error anulando venta:",
         error
       );
 
+
       return res.status(500).json({
         error:
-          "Error interno al consultar las ventas"
+          "Error interno al anular la venta"
       });
+
 
     } finally {
 
@@ -641,127 +683,342 @@ router.get(
 
 
 // ==================================================
-// LISTAR HISTORIAL DE VENTAS
+// RESUMEN DE VENTAS
+// ==================================================
+//
+// GET /api/sales/summary
+//
+// Este endpoint alimenta Dashboard.
+//
+// IMPORTANTE:
+//
+// Las ventas anuladas NO deben formar parte
+// de los indicadores.
+//
+// Por eso utilizamos:
+//
+// WHERE estado = 'completada'
+//
+router.get(
+  "/summary",
+  async (req, res) => {
+
+    let connection;
+
+
+    try {
+
+      connection =
+        await pool.getConnection();
+
+
+      // ==================================================
+      // TOTAL DE UNIDADES VENDIDAS
+      // ==================================================
+      //
+      // SUM(cantidad) suma todas las unidades
+      // de ventas válidas.
+      //
+      // COALESCE convierte NULL en 0
+      // cuando todavía no existen ventas.
+      //
+      const totals =
+        await connection.query(
+          `
+          SELECT
+            COALESCE(
+              SUM(cantidad),
+              0
+            ) AS unidades_vendidas
+          FROM sales
+          WHERE estado = 'completada'
+          `
+        );
+
+
+      // ==================================================
+      // PRODUCTOS MÁS VENDIDOS
+      // ==================================================
+      //
+      // Agrupamos las ventas válidas
+      // por producto.
+      //
+      const topProducts =
+        await connection.query(
+          `
+          SELECT
+            p.id,
+            p.nombre,
+            SUM(s.cantidad)
+              AS unidades_vendidas
+          FROM sales s
+          INNER JOIN products p
+            ON p.id = s.product_id
+          WHERE s.estado = 'completada'
+          GROUP BY
+            p.id,
+            p.nombre
+          ORDER BY
+            unidades_vendidas DESC,
+            p.nombre ASC
+          LIMIT 5
+          `
+        );
+
+
+      // ==================================================
+      // VENTAS RECIENTES
+      // ==================================================
+      //
+      // El Dashboard solamente muestra
+      // movimientos válidos.
+      //
+      // Una venta anulada seguirá apareciendo
+      // en el historial general de Sales,
+      // pero no aquí.
+      //
+      const recentSales =
+        await connection.query(
+          `
+          SELECT
+            s.id,
+            p.nombre AS producto,
+            s.cantidad,
+            s.precio_unitario,
+            s.created_at
+          FROM sales s
+          INNER JOIN products p
+            ON p.id = s.product_id
+          WHERE s.estado = 'completada'
+          ORDER BY
+            s.created_at DESC,
+            s.id DESC
+          LIMIT 5
+          `
+        );
+
+
+      // ==================================================
+      // RESPUESTA
+      // ==================================================
+
+      return res.status(200).json({
+
+        unidades_vendidas:
+          Number(
+            totals[0]
+              ?.unidades_vendidas || 0
+          ),
+
+
+        productos_mas_vendidos:
+          topProducts.map(
+            (product) => ({
+
+              id:
+                product.id,
+
+              nombre:
+                product.nombre,
+
+              unidades_vendidas:
+                Number(
+                  product.unidades_vendidas
+                )
+            })
+          ),
+
+
+        ventas_recientes:
+          recentSales.map(
+            (sale) => ({
+
+              id:
+                sale.id,
+
+              producto:
+                sale.producto,
+
+              cantidad:
+                Number(
+                  sale.cantidad
+                ),
+
+              precio_unitario:
+                Number(
+                  sale.precio_unitario
+                ),
+
+              created_at:
+                sale.created_at
+            })
+          )
+
+      });
+
+
+    } catch (error) {
+
+      console.error(
+        "Error obteniendo resumen de ventas:",
+        error
+      );
+
+
+      return res.status(500).json({
+        error:
+          "Error interno al obtener el resumen de ventas"
+      });
+
+
+    } finally {
+
+      if (connection) {
+        connection.release();
+      }
+    }
+  }
+);
+
+
+// ==================================================
+// HISTORIAL COMPLETO DE VENTAS
 // ==================================================
 //
 // GET /api/sales
 //
-// Devuelve todas las ventas,
-// comenzando por las más recientes.
+// A diferencia del Dashboard,
+// aquí SÍ devolvemos:
 //
-router.get("/", async (req, res) => {
-
-  let connection;
-
-  try {
-
-    connection =
-      await pool.getConnection();
-
-
-    // ==================================================
-    // CONSULTAR VENTAS
-    // ==================================================
-
-    // INNER JOIN permite relacionar:
+// - ventas completadas;
+// - ventas anuladas.
 //
-// sales.product_id
-//        ↓
-// products.id
+// Esto permite conservar trazabilidad.
 //
-// De esta manera podemos devolver
-// información de ambas tablas:
+// El Frontend utilizará "estado"
+// para decidir:
 //
-// sales
-// ├── cantidad
-// ├── precio
-// └── fecha
+// completada
+// → mostrar botón Anular
 //
-// products
-// └── nombre
-    const sales =
-      await connection.query(`
-        SELECT
-          s.id,
-          s.product_id,
-          p.nombre AS producto,
-          s.cantidad,
-          s.precio_unitario,
-          s.created_at
-        FROM sales s
+// anulada
+// → mostrar etiqueta Anulada
+//
+router.get(
+  "/",
+  async (req, res) => {
 
-        INNER JOIN products p
-          ON p.id = s.product_id
-
-        ORDER BY
-          s.created_at DESC,
-          s.id DESC
-      `);
+    let connection;
 
 
-    // ==================================================
-    // NORMALIZAR Y RESPONDER
-    // ==================================================
+    try {
 
-    // Convertimos explícitamente algunos campos
-    // a Number antes de enviarlos como JSON.
-    return res.status(200).json(
+      connection =
+        await pool.getConnection();
 
-      sales.map(
-        (sale) => ({
-          ...sale,
 
-          cantidad:
-            Number(
-              sale.cantidad
-            ),
+      // ==================================================
+      // CONSULTAR HISTORIAL
+      // ==================================================
 
-          precio_unitario:
-            Number(
-              sale
-                .precio_unitario
-            )
-        })
-      )
-    );
+      const sales =
+        await connection.query(
+          `
+          SELECT
+            s.id,
+            s.product_id,
+            p.nombre AS producto,
+            s.cantidad,
+            s.precio_unitario,
+            s.estado,
+            s.created_at,
+            s.anulada_at
+          FROM sales s
+          INNER JOIN products p
+            ON p.id = s.product_id
+          ORDER BY
+            s.created_at DESC,
+            s.id DESC
+          `
+        );
 
-  } catch (error) {
 
-    console.error(
-      "Error consultando ventas:",
-      error
-    );
+      // ==================================================
+      // NORMALIZAR RESPUESTA
+      // ==================================================
+      //
+      // Algunos valores provenientes de MariaDB,
+      // especialmente DECIMAL,
+      // pueden recibirse como strings.
+      //
+      // Los convertimos explícitamente a Number.
+      //
+      const normalizedSales =
+        sales.map(
+          (sale) => ({
 
-    return res.status(500).json({
-      error:
-        "Error interno al consultar las ventas"
-    });
+            id:
+              sale.id,
 
-  } finally {
+            product_id:
+              sale.product_id,
 
-    // Siempre devolvemos la conexión al pool.
-    if (connection) {
-      connection.release();
+            producto:
+              sale.producto,
+
+            cantidad:
+              Number(
+                sale.cantidad
+              ),
+
+            precio_unitario:
+              Number(
+                sale.precio_unitario
+              ),
+
+            estado:
+              sale.estado,
+
+            created_at:
+              sale.created_at,
+
+            anulada_at:
+              sale.anulada_at
+          })
+        );
+
+
+      return res.status(200).json(
+        normalizedSales
+      );
+
+
+    } catch (error) {
+
+      console.error(
+        "Error obteniendo ventas:",
+        error
+      );
+
+
+      return res.status(500).json({
+        error:
+          "Error interno al obtener las ventas"
+      });
+
+
+    } finally {
+
+      if (connection) {
+        connection.release();
+      }
     }
   }
-});
+);
 
 
 // ==================================================
 // EXPORTAR ROUTER
 // ==================================================
 
-// Exportamos el router para utilizarlo
-// desde server.js.
-//
-// Allí tenemos:
-//
-// app.use(
-//   "/api/sales",
-//   authenticateToken,
-//   salesRouter
-// );
-//
-// Por eso todos estos endpoints requieren
-// una sesión con JWT válido.
 module.exports = router;

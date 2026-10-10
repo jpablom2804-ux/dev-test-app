@@ -1,16 +1,7 @@
 // ==================================================
 // HOOKS DE REACT
 // ==================================================
-//
-// useState:
-// guarda información que puede cambiar.
-//
-// useEffect:
-// ejecuta código cuando el componente se carga.
-//
-// useMemo:
-// memoriza un cálculo y solamente lo vuelve
-// a ejecutar cuando cambian sus dependencias.
+
 import {
   useEffect,
   useMemo,
@@ -21,17 +12,15 @@ import {
 // ==================================================
 // ICONOS
 // ==================================================
-//
-// Los iconos provienen de lucide-react
-// y se utilizan únicamente para mejorar
-// la interfaz visual.
+
 import {
   ShoppingCart,
   Package,
   Plus,
   Clock,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Ban
 } from "lucide-react";
 
 
@@ -42,17 +31,17 @@ import {
 // Esta página permite:
 //
 // - consultar productos disponibles;
-// - seleccionar un producto;
-// - indicar una cantidad;
-// - registrar una venta;
-// - actualizar el stock;
-// - consultar el historial de ventas.
+// - registrar ventas;
+// - consultar el historial;
+// - visualizar el estado de cada venta;
+// - anular ventas registradas incorrectamente.
 //
-// Se comunica principalmente con:
+// Endpoints utilizados:
 //
-// GET  /api/products
-// GET  /api/sales
-// POST /api/sales
+// GET   /api/products
+// GET   /api/sales
+// POST  /api/sales
+// PATCH /api/sales/:id/cancel
 //
 function Sales() {
 
@@ -61,8 +50,6 @@ function Sales() {
   // PRODUCTOS
   // ==================================================
 
-  // Guarda los productos activos recibidos
-  // desde GET /api/products.
   const [
     products,
     setProducts
@@ -70,11 +57,9 @@ function Sales() {
 
 
   // ==================================================
-  // HISTORIAL DE VENTAS
+  // VENTAS
   // ==================================================
 
-  // Guarda las ventas recibidas
-  // desde GET /api/sales.
   const [
     sales,
     setSales
@@ -82,28 +67,15 @@ function Sales() {
 
 
   // ==================================================
-  // PRODUCTO SELECCIONADO
+  // FORMULARIO DE VENTA
   // ==================================================
 
-  // Guarda el ID del producto seleccionado
-  // en el <select>.
-  //
-  // Inicialmente está vacío porque todavía
-  // no existe ningún producto seleccionado.
   const [
     productId,
     setProductId
   ] = useState("");
 
 
-  // ==================================================
-  // CANTIDAD
-  // ==================================================
-
-  // Guarda la cantidad de unidades
-  // que se desean vender.
-  //
-  // Por defecto inicia en 1.
   const [
     quantity,
     setQuantity
@@ -111,13 +83,9 @@ function Sales() {
 
 
   // ==================================================
-  // ESTADO DE CARGA INICIAL
+  // CARGA INICIAL
   // ==================================================
 
-  // loading indica si todavía estamos cargando:
-  //
-  // - productos;
-  // - historial de ventas.
   const [
     loading,
     setLoading
@@ -125,14 +93,9 @@ function Sales() {
 
 
   // ==================================================
-  // ESTADO DE REGISTRO DE VENTA
+  // REGISTRANDO VENTA
   // ==================================================
 
-  // saving indica si actualmente existe
-  // una venta en proceso.
-  //
-  // Esto evita que el usuario pueda enviar
-  // la misma venta varias veces rápidamente.
   const [
     saving,
     setSaving
@@ -140,17 +103,52 @@ function Sales() {
 
 
   // ==================================================
+  // ANULANDO VENTA
+  // ==================================================
+  //
+  // cancelling indica si actualmente
+  // existe una solicitud de anulación
+  // en proceso.
+  //
+  const [
+    cancelling,
+    setCancelling
+  ] = useState(false);
+
+
+  // ==================================================
+  // VENTA SELECCIONADA PARA ANULAR
+  // ==================================================
+  //
+  // Guarda temporalmente la venta sobre
+  // la cual el usuario hizo clic en "Anular".
+  //
+  const [
+    saleToCancel,
+    setSaleToCancel
+  ] = useState(null);
+
+
+  // ==================================================
+  // MODAL DE ANULACIÓN
+  // ==================================================
+
+  const [
+    cancelModalOpen,
+    setCancelModalOpen
+  ] = useState(false);
+
+
+  // ==================================================
   // MENSAJES
   // ==================================================
 
-  // Mensaje de error.
   const [
     error,
     setError
   ] = useState("");
 
 
-  // Mensaje de operación exitosa.
   const [
     success,
     setSuccess
@@ -161,30 +159,15 @@ function Sales() {
   // CARGAR PRODUCTOS Y VENTAS
   // ==================================================
   //
-  // Esta función consulta:
-  //
-  // GET /api/products
-  // GET /api/sales
-  //
-  // Utilizamos Promise.all() para realizar
-  // ambas peticiones al mismo tiempo.
+  // Realizamos ambas peticiones simultáneamente.
   //
   const loadData = async () => {
 
     try {
 
-      // Limpiamos cualquier error anterior.
       setError("");
 
 
-      // ==================================================
-      // PETICIONES EN PARALELO
-      // ==================================================
-      //
-      // productos ─────┐
-      //                ├── simultáneamente
-      // ventas ────────┘
-      //
       const [
         productsResponse,
         salesResponse
@@ -192,27 +175,24 @@ function Sales() {
 
 
         // ----------------------------------------------
-        // PRODUCTOS
+        // PRODUCTOS ACTIVOS
         // ----------------------------------------------
 
         fetch(
           "/api/products",
           {
-            // Incluye la cookie JWT
-            // en la solicitud.
             credentials: "include"
           }
         ),
 
 
         // ----------------------------------------------
-        // VENTAS
+        // HISTORIAL DE VENTAS
         // ----------------------------------------------
 
         fetch(
           "/api/sales",
           {
-            // Incluye la cookie JWT.
             credentials: "include"
           }
         )
@@ -221,7 +201,7 @@ function Sales() {
 
 
       // ==================================================
-      // CONVERTIR RESPUESTAS JSON
+      // CONVERTIR RESPUESTAS
       // ==================================================
 
       const productsData =
@@ -233,7 +213,7 @@ function Sales() {
 
 
       // ==================================================
-      // VALIDAR RESPUESTA DE PRODUCTOS
+      // VALIDAR PRODUCTOS
       // ==================================================
 
       if (!productsResponse.ok) {
@@ -246,7 +226,7 @@ function Sales() {
 
 
       // ==================================================
-      // VALIDAR RESPUESTA DE VENTAS
+      // VALIDAR VENTAS
       // ==================================================
 
       if (!salesResponse.ok) {
@@ -262,38 +242,31 @@ function Sales() {
       // GUARDAR INFORMACIÓN
       // ==================================================
 
-      // Guardamos los productos disponibles.
       setProducts(productsData);
 
-      // Guardamos el historial de ventas.
       setSales(salesData);
+
 
     } catch (error) {
 
-      // Mostramos cualquier error recibido
-      // desde la API.
       setError(error.message);
+
 
     } finally {
 
-      // Finaliza la carga inicial.
       setLoading(false);
     }
   };
 
 
   // ==================================================
-  // CARGA INICIAL DEL COMPONENTE
+  // CARGA INICIAL
   // ==================================================
 
-  // Cuando Sales se monta por primera vez,
-  // ejecutamos loadData().
   useEffect(() => {
 
     loadData();
 
-    // [] significa que se ejecuta
-    // al montar inicialmente el componente.
   }, []);
 
 
@@ -301,16 +274,10 @@ function Sales() {
   // PRODUCTO SELECCIONADO
   // ==================================================
   //
-  // productId solamente contiene el ID.
+  // productId solamente contiene un ID.
   //
-  // Para mostrar información como:
-  //
-  // - nombre;
-  // - stock;
-  // - precio;
-  //
-  // necesitamos encontrar el objeto completo
-  // dentro del array products.
+  // Buscamos dentro del array products
+  // el objeto completo correspondiente.
   //
   const selectedProduct =
     useMemo(() => {
@@ -330,48 +297,28 @@ function Sales() {
   // ==================================================
   // REGISTRAR VENTA
   // ==================================================
-  //
-  // Flujo:
-  //
-  // Formulario
-  // ↓
-  // validar producto
-  // ↓
-  // validar cantidad
-  // ↓
-  // validar stock
-  // ↓
-  // POST /api/sales
-  // ↓
-  // Backend registra venta
-  // ↓
-  // Backend descuenta stock
-  // ↓
-  // respuesta 201
-  // ↓
-  // recargar productos y ventas
-  //
+
   const handleSale = async (event) => {
 
-    // Evita que el formulario recargue
-    // completamente la página.
     event.preventDefault();
 
 
-    // Limpiamos mensajes anteriores.
+    // Evitamos enviar otra venta
+    // mientras existe una en proceso.
+    if (saving) {
+      return;
+    }
+
+
     setError("");
 
     setSuccess("");
 
 
     // ==================================================
-    // NORMALIZAR DATOS
+    // NORMALIZAR VALORES
     // ==================================================
 
-    // Los valores provenientes de inputs/select
-    // normalmente llegan como texto.
-    //
-    // Por eso los convertimos a Number.
     const parsedProductId =
       Number(productId);
 
@@ -384,14 +331,8 @@ function Sales() {
     // VALIDAR PRODUCTO
     // ==================================================
 
-    // product_id debe ser:
-    //
-    // - entero;
-    // - mayor que cero.
     if (
-      !Number.isInteger(
-        parsedProductId
-      ) ||
+      !Number.isInteger(parsedProductId) ||
       parsedProductId <= 0
     ) {
 
@@ -407,14 +348,8 @@ function Sales() {
     // VALIDAR CANTIDAD
     // ==================================================
 
-    // La cantidad debe ser:
-    //
-    // - un número entero;
-    // - mayor que cero.
     if (
-      !Number.isInteger(
-        parsedQuantity
-      ) ||
+      !Number.isInteger(parsedQuantity) ||
       parsedQuantity <= 0
     ) {
 
@@ -427,20 +362,15 @@ function Sales() {
 
 
     // ==================================================
-    // VALIDAR STOCK EN EL FRONTEND
+    // VALIDAR STOCK EN FRONTEND
     // ==================================================
-
-    // Si el producto existe y la cantidad solicitada
-    // supera el stock disponible,
-    // mostramos el error antes de llamar a la API.
     //
-    // Esto mejora la experiencia del usuario.
+    // Esta validación mejora la experiencia
+    // del usuario.
     //
-    // IMPORTANTE:
-    // el Backend también realiza esta validación.
+    // El Backend vuelve a validar el stock
+    // porque esa es la validación autoritativa.
     //
-    // La validación del Backend es la
-    // que realmente protege los datos.
     if (
       selectedProduct &&
       parsedQuantity >
@@ -457,38 +387,26 @@ function Sales() {
 
     try {
 
-      // ==================================================
-      // INICIAR REGISTRO
-      // ==================================================
-
       setSaving(true);
 
 
       // ==================================================
-      // ENVIAR VENTA AL BACKEND
+      // POST /api/sales
       // ==================================================
 
       const response =
         await fetch(
           "/api/sales",
           {
-            // Estamos creando una venta.
             method: "POST",
 
-
-            // Incluimos la cookie JWT.
             credentials: "include",
 
-
-            // Indicamos que enviaremos JSON.
             headers: {
               "Content-Type":
                 "application/json"
             },
 
-
-            // Convertimos los datos
-            // de JavaScript a JSON.
             body: JSON.stringify({
 
               product_id:
@@ -500,10 +418,6 @@ function Sales() {
           }
         );
 
-
-      // ==================================================
-      // LEER RESPUESTA
-      // ==================================================
 
       const data =
         await response.json();
@@ -526,22 +440,15 @@ function Sales() {
       // VENTA EXITOSA
       // ==================================================
 
-      // Mostramos el mensaje enviado
-      // por el Backend.
       setSuccess(
         data.message ||
         "Venta registrada correctamente"
       );
 
 
-      // ==================================================
-      // REINICIAR FORMULARIO
-      // ==================================================
-
-      // Quitamos el producto seleccionado.
+      // Reiniciamos formulario.
       setProductId("");
 
-      // Reiniciamos cantidad a 1.
       setQuantity(1);
 
 
@@ -549,50 +456,188 @@ function Sales() {
       // ACTUALIZAR INFORMACIÓN
       // ==================================================
       //
-      // Después de registrar una venta:
+      // Esto actualizará:
       //
-      // - existe una nueva fila en sales;
-      // - el producto tiene menos stock.
+      // - stock;
+      // - historial.
       //
-      // Por eso volvemos a consultar la API.
-      //
-      // Así la interfaz queda sincronizada
-      // con la base de datos.
       await loadData();
+
 
     } catch (error) {
 
-      // Mostramos cualquier error recibido
-      // desde el Backend.
       setError(error.message);
+
 
     } finally {
 
-      // Finaliza el proceso de registro.
       setSaving(false);
     }
   };
 
 
   // ==================================================
-  // FORMATO DE FECHA
+  // ABRIR MODAL DE ANULACIÓN
   // ==================================================
   //
-  // Convierte la fecha recibida desde MariaDB
-  // a un formato más fácil de leer.
+  // Cuando el usuario pulsa "Anular",
+  // guardamos la venta seleccionada
+  // antes de mostrar el modal.
   //
-  // Ejemplo:
+  const openCancelModal = (sale) => {
+
+    setSaleToCancel(sale);
+
+    setCancelModalOpen(true);
+
+    setError("");
+
+    setSuccess("");
+  };
+
+
+  // ==================================================
+  // CERRAR MODAL DE ANULACIÓN
+  // ==================================================
+
+  const closeCancelModal = () => {
+
+    // No permitimos cerrar el modal mientras
+    // el Backend está procesando la anulación.
+    if (cancelling) {
+      return;
+    }
+
+
+    setCancelModalOpen(false);
+
+    setSaleToCancel(null);
+
+    setError("");
+  };
+
+
+  // ==================================================
+  // ANULAR VENTA
+  // ==================================================
   //
-  // 2026-10-10T14:30:00
+  // PATCH /api/sales/:id/cancel
   //
+  // El Frontend NO modifica directamente el stock.
+  //
+  // Solamente solicita la anulación.
+  //
+  // El Backend se encarga de:
+  //
+  // BEGIN TRANSACTION
   // ↓
+  // buscar venta
+  // ↓
+  // devolver stock
+  // ↓
+  // marcar venta como anulada
+  // ↓
+  // COMMIT
   //
-  // 10/10/2026, 02:30 p. m.
-  //
+  const cancelSale = async () => {
+
+    // Necesitamos una venta seleccionada.
+    if (
+      !saleToCancel ||
+      cancelling
+    ) {
+      return;
+    }
+
+
+    try {
+
+      setCancelling(true);
+
+      setError("");
+
+      setSuccess("");
+
+
+      // ==================================================
+      // SOLICITAR ANULACIÓN
+      // ==================================================
+
+      const response =
+        await fetch(
+          `/api/sales/${saleToCancel.id}/cancel`,
+          {
+            method: "PATCH",
+
+            credentials: "include"
+          }
+        );
+
+
+      const data =
+        await response.json();
+
+
+      // ==================================================
+      // VALIDAR RESPUESTA
+      // ==================================================
+
+      if (!response.ok) {
+
+        throw new Error(
+          data.error ||
+          "No se pudo anular la venta"
+        );
+      }
+
+
+      // ==================================================
+      // ANULACIÓN EXITOSA
+      // ==================================================
+
+      setSuccess(
+        data.message ||
+        `Venta #${saleToCancel.id} anulada correctamente`
+      );
+
+
+      // Cerramos el modal.
+      setCancelModalOpen(false);
+
+      setSaleToCancel(null);
+
+
+      // ==================================================
+      // RECARGAR INFORMACIÓN
+      // ==================================================
+      //
+      // Esto actualiza:
+      //
+      // - historial;
+      // - estado de la venta;
+      // - stock disponible.
+      //
+      await loadData();
+
+
+    } catch (error) {
+
+      setError(error.message);
+
+
+    } finally {
+
+      setCancelling(false);
+    }
+  };
+
+
+  // ==================================================
+  // FORMATEAR FECHA
+  // ==================================================
+
   const formatDate = (date) => {
 
-    // Si no existe fecha,
-    // devolvemos texto vacío.
     if (!date) {
       return "";
     }
@@ -616,8 +661,6 @@ function Sales() {
   // PANTALLA DE CARGA
   // ==================================================
 
-  // Mientras obtenemos productos y ventas,
-  // mostramos un mensaje temporal.
   if (loading) {
 
     return (
@@ -642,7 +685,7 @@ function Sales() {
 
 
   // ==================================================
-  // INTERFAZ DE VENTAS
+  // INTERFAZ
   // ==================================================
 
   return (
@@ -696,10 +739,10 @@ function Sales() {
 
 
       {/* ==================================================
-          MENSAJE DE ERROR
+          MENSAJE DE ERROR GENERAL
           ================================================== */}
 
-      {error && (
+      {error && !cancelModalOpen && (
 
         <div className="feedback-message error-message">
 
@@ -713,7 +756,7 @@ function Sales() {
 
 
       {/* ==================================================
-          ÁREA PRINCIPAL DE REGISTRO
+          ÁREA DE REGISTRO
           ================================================== */}
 
       <div className="sales-layout">
@@ -725,10 +768,6 @@ function Sales() {
 
         <section className="sale-form-card">
 
-
-          {/* ----------------------------------------------
-              ENCABEZADO DEL FORMULARIO
-              ---------------------------------------------- */}
 
           <div className="sale-card-header">
 
@@ -768,7 +807,7 @@ function Sales() {
 
 
             {/* ================================================
-                SELECCIONAR PRODUCTO
+                PRODUCTO
                 ================================================ */}
 
             <div className="form-field">
@@ -781,11 +820,8 @@ function Sales() {
               <select
                 className="sales-select"
 
-                // ID seleccionado.
                 value={productId}
 
-                // Actualizamos el estado
-                // cuando cambia el producto.
                 onChange={(event) =>
                   setProductId(
                     event.target.value
@@ -794,14 +830,11 @@ function Sales() {
               >
 
 
-                {/* Opción inicial */}
                 <option value="">
                   Seleccione un producto
                 </option>
 
 
-                {/* Creamos una opción
-                    por cada producto activo. */}
                 {products.map(
                   (product) => (
 
@@ -810,8 +843,6 @@ function Sales() {
 
                       value={product.id}
 
-                      // Si no existe stock,
-                      // no permitimos seleccionarlo.
                       disabled={
                         Number(
                           product.stock
@@ -836,11 +867,9 @@ function Sales() {
 
 
             {/* ==================================================
-                PRODUCTO SELECCIONADO
+                INFORMACIÓN DEL PRODUCTO SELECCIONADO
                 ================================================== */}
 
-            {/* Esta tarjeta solamente aparece
-                cuando selectedProduct existe. */}
             {selectedProduct && (
 
               <div className="selected-product-card">
@@ -853,7 +882,6 @@ function Sales() {
                 </div>
 
 
-                {/* Nombre */}
                 <div>
 
                   <span>
@@ -867,7 +895,6 @@ function Sales() {
                 </div>
 
 
-                {/* Stock */}
                 <div className="selected-product-stock">
 
                   <span>
@@ -899,11 +926,8 @@ function Sales() {
               <input
                 type="number"
 
-                // Mínimo permitido.
                 min="1"
 
-                // Si existe producto seleccionado,
-                // el máximo será su stock actual.
                 max={
                   selectedProduct
                     ? selectedProduct.stock
@@ -923,7 +947,7 @@ function Sales() {
 
 
             {/* ==================================================
-                BOTÓN REGISTRAR
+                REGISTRAR
                 ================================================== */}
 
             <button
@@ -931,12 +955,6 @@ function Sales() {
 
               className="primary-button sale-submit-button"
 
-              // El botón se deshabilita cuando:
-              //
-              // - ya estamos registrando;
-              // - no hay producto seleccionado;
-              // - el producto no existe;
-              // - el producto no tiene stock.
               disabled={
                 saving ||
                 !productId ||
@@ -987,7 +1005,6 @@ function Sales() {
           </p>
 
 
-          {/* Flujo visual de una venta */}
           <div className="sale-flow">
 
             <span>
@@ -1033,7 +1050,7 @@ function Sales() {
 
 
         {/* ==================================================
-            ENCABEZADO DEL HISTORIAL
+            ENCABEZADO
             ================================================== */}
 
         <div className="sales-history-header">
@@ -1061,15 +1078,16 @@ function Sales() {
           </div>
 
 
-          {/* Cantidad total de registros
-              cargados en el historial. */}
+          {/* Ahora hablamos de registros porque
+              el historial también puede contener
+              ventas anuladas. */}
           <span className="sales-count">
 
             {sales.length}{" "}
 
             {sales.length === 1
-              ? "venta"
-              : "ventas"}
+              ? "registro"
+              : "registros"}
 
           </span>
 
@@ -1104,7 +1122,7 @@ function Sales() {
 
 
           /* ==================================================
-             TABLA DE VENTAS
+             TABLA
              ================================================== */
 
           <div className="table-responsive">
@@ -1137,20 +1155,26 @@ function Sales() {
                     Fecha
                   </th>
 
+                  <th>
+                    Estado
+                  </th>
+
+                  <th className="actions-column">
+                    Acciones
+                  </th>
+
                 </tr>
 
               </thead>
 
 
               {/* ============================================
-                  CUERPO DE LA TABLA
+                  VENTAS
                   ============================================ */}
 
               <tbody>
 
 
-                {/* Creamos una fila
-                    por cada venta registrada. */}
                 {sales.map(
                   (sale) => (
 
@@ -1202,7 +1226,6 @@ function Sales() {
                           {sale.cantidad}{" "}
 
 
-                          {/* Singular / plural */}
                           {sale.cantidad === 1
                             ? "unidad"
                             : "unidades"}
@@ -1228,7 +1251,7 @@ function Sales() {
 
 
                       {/* ==================================
-                          FECHA
+                          FECHA DE VENTA
                           ================================== */}
 
                       <td>
@@ -1236,6 +1259,78 @@ function Sales() {
                         {formatDate(
                           sale.created_at
                         )}
+
+                      </td>
+
+
+                      {/* ==================================
+                          ESTADO
+                          ================================== */}
+
+                      <td>
+
+
+                        {sale.estado === "anulada" ? (
+
+                          <span className="stock-badge deleted-badge">
+
+                            Anulada
+
+                          </span>
+
+                        ) : (
+
+                          <span className="stock-badge stock-ok">
+
+                            Completada
+
+                          </span>
+
+                        )}
+
+
+                      </td>
+
+
+                      {/* ==================================
+                          ACCIONES
+                          ================================== */}
+
+                      <td>
+
+
+                        {sale.estado === "completada" ? (
+
+                          <button
+                            type="button"
+
+                            className="danger-button"
+
+                            onClick={() =>
+                              openCancelModal(
+                                sale
+                              )
+                            }
+
+                            disabled={cancelling}
+                          >
+
+                            <Ban size={16} />
+
+                            Anular
+
+                          </button>
+
+                        ) : (
+
+                          // Una venta anulada ya no
+                          // permite ninguna acción.
+                          <span>
+                            —
+                          </span>
+
+                        )}
+
 
                       </td>
 
@@ -1254,6 +1349,177 @@ function Sales() {
         )}
 
       </section>
+
+
+      {/* ==================================================
+          MODAL DE CONFIRMACIÓN DE ANULACIÓN
+          ==================================================
+
+          El modal solamente aparece si:
+
+          cancelModalOpen = true
+
+          y existe:
+
+          saleToCancel
+      */}
+
+      {cancelModalOpen &&
+        saleToCancel && (
+
+          <div
+            className="modal-backdrop-custom"
+
+            // Permite cerrar haciendo clic
+            // fuera del cuadro.
+            onMouseDown={
+              closeCancelModal
+            }
+          >
+
+
+            <div
+              className="delete-modal"
+
+              // Evita que un clic dentro
+              // del cuadro cierre el modal.
+              onMouseDown={(event) =>
+                event.stopPropagation()
+              }
+            >
+
+
+              {/* ============================================
+                  ICONO
+                  ============================================ */}
+
+              <div className="delete-modal-icon">
+
+                <Ban size={24} />
+
+              </div>
+
+
+              {/* ============================================
+                  INFORMACIÓN
+                  ============================================ */}
+
+              <div className="delete-modal-content">
+
+
+                <h2>
+                  Anular venta
+                </h2>
+
+
+                <p>
+
+                  ¿Deseas anular la{" "}
+
+                  <strong>
+                    Venta #{saleToCancel.id}
+                  </strong>
+
+                  {" "}de{" "}
+
+                  <strong>
+                    {saleToCancel.producto}
+                  </strong>
+
+                  ?
+
+                </p>
+
+
+                <div className="delete-info">
+
+                  Esta operación no eliminará
+                  el registro del historial.
+
+                  <br />
+
+                  Las{" "}
+
+                  <strong>
+                    {saleToCancel.cantidad}
+                  </strong>
+
+                  {" "}unidades serán devueltas
+                  automáticamente al inventario.
+
+                </div>
+
+
+                {/* ==========================================
+                    ERROR DENTRO DEL MODAL
+                    ========================================== */}
+
+                {error && (
+
+                  <div className="feedback-message error-message">
+
+                    <AlertCircle size={18} />
+
+                    {error}
+
+                  </div>
+
+                )}
+
+
+              </div>
+
+
+              {/* ============================================
+                  BOTONES
+                  ============================================ */}
+
+              <div className="delete-modal-actions">
+
+
+                <button
+                  type="button"
+
+                  className="secondary-button"
+
+                  onClick={
+                    closeCancelModal
+                  }
+
+                  disabled={cancelling}
+                >
+
+                  Cancelar
+
+                </button>
+
+
+                <button
+                  type="button"
+
+                  className="danger-button"
+
+                  onClick={cancelSale}
+
+                  disabled={cancelling}
+                >
+
+                  <Ban size={17} />
+
+
+                  {cancelling
+                    ? "Anulando..."
+                    : "Anular venta"}
+
+                </button>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        )}
 
     </div>
   );

@@ -260,13 +260,26 @@ CREATE TABLE IF NOT EXISTS users (
 -- - producto vendido;
 -- - cantidad;
 -- - precio que tenía en ese momento;
--- - fecha de venta.
+-- - estado de la venta;
+-- - fecha de venta;
+-- - fecha de anulación, si aplica.
 --
 -- Esta tabla es utilizada por:
 --
--- POST /api/sales
--- GET  /api/sales
--- GET  /api/sales/summary
+-- POST  /api/sales
+-- GET   /api/sales
+-- GET   /api/sales/summary
+-- PATCH /api/sales/:id/cancel
+--
+-- IMPORTANTE:
+--
+-- Las ventas no se eliminan físicamente.
+--
+-- Si una venta fue registrada por error,
+-- se marca como "anulada".
+--
+-- De esta manera conservamos el historial
+-- y podemos devolver el stock al producto.
 --
 
 CREATE TABLE IF NOT EXISTS sales (
@@ -288,7 +301,7 @@ CREATE TABLE IF NOT EXISTS sales (
     --
     -- Guarda el ID del producto vendido.
     --
-    -- Posteriormente se relacionará con:
+    -- Posteriormente se relaciona con:
     --
     -- products.id
     --
@@ -302,6 +315,13 @@ CREATE TABLE IF NOT EXISTS sales (
     -- Cantidad de unidades vendidas
     -- en este movimiento.
     --
+    -- Ejemplo:
+    --
+    -- cantidad = 4
+    --
+    -- significa que se vendieron
+    -- cuatro unidades del producto.
+    --
     cantidad INT NOT NULL,
 
 
@@ -313,7 +333,8 @@ CREATE TABLE IF NOT EXISTS sales (
     -- EN EL MOMENTO DE LA VENTA.
     --
     -- Esto es importante porque el precio
-    -- del producto puede cambiar posteriormente.
+    -- actual del producto puede cambiar
+    -- posteriormente.
     --
     -- Ejemplo:
     --
@@ -334,15 +355,73 @@ CREATE TABLE IF NOT EXISTS sales (
 
 
     -- ==================================================
+    -- ESTADO DE LA VENTA
+    -- ==================================================
+    --
+    -- Permite saber si una venta sigue siendo válida
+    -- o si posteriormente fue anulada.
+    --
+    -- Valores utilizados por nuestra aplicación:
+    --
+    -- completada
+    -- → venta válida.
+    --
+    -- anulada
+    -- → venta revertida.
+    --
+    -- DEFAULT 'completada' significa que todas
+    -- las ventas nuevas se consideran válidas
+    -- automáticamente.
+    --
+    -- Esto también permite que las ventas antiguas
+    -- reciban "completada" cuando agreguemos
+    -- esta columna a la base existente.
+    --
+    estado VARCHAR(20)
+        NOT NULL
+        DEFAULT 'completada',
+
+
+    -- ==================================================
     -- FECHA DE LA VENTA
     -- ==================================================
     --
     -- MariaDB asigna automáticamente
-    -- la fecha y hora del movimiento.
+    -- la fecha y hora en que se registró
+    -- originalmente la venta.
+    --
+    -- Esta fecha NO cambia si posteriormente
+    -- anulamos la operación.
     --
     created_at TIMESTAMP
         NOT NULL
         DEFAULT CURRENT_TIMESTAMP,
+
+
+    -- ==================================================
+    -- FECHA DE ANULACIÓN
+    -- ==================================================
+    --
+    -- Mientras la venta siga completada:
+    --
+    -- anulada_at = NULL
+    --
+    -- Si posteriormente se anula:
+    --
+    -- anulada_at = fecha y hora de la anulación
+    --
+    -- Ejemplo:
+    --
+    -- estado = 'anulada'
+    -- anulada_at = '2026-10-10 16:30:00'
+    --
+    -- Permitir NULL es importante porque
+    -- una venta normal todavía no tiene
+    -- una fecha de anulación.
+    --
+    anulada_at TIMESTAMP
+        NULL
+        DEFAULT NULL,
 
 
     -- ==================================================
@@ -358,7 +437,21 @@ CREATE TABLE IF NOT EXISTS sales (
     -- Esto garantiza integridad referencial.
     --
     -- MariaDB no permitirá registrar una venta
-    -- apuntando a un producto inexistente.
+    -- relacionada con un producto inexistente.
+    --
+    -- Ejemplo:
+    --
+    -- products
+    --
+    -- id = 5
+    -- nombre = "Laptop Dell"
+    --
+    -- sales
+    --
+    -- product_id = 5
+    --
+    -- Entonces esa venta pertenece
+    -- a "Laptop Dell".
     --
     CONSTRAINT fk_sales_product
 
