@@ -515,7 +515,7 @@ function Sales() {
                 <tr>
                   <th>Producto</th>
                   <th>Cantidad</th>
-                  <th>Precio unitario</th>
+                  <th>Precio unitario (USD)</th>
                   <th>Fecha</th>
                 </tr>
               </thead>
@@ -556,7 +556,7 @@ function Sales() {
                     </td>
 
                     <td className="price-cell">
-                      {Number(
+                      ${Number(
                         sale.precio_unitario
                       ).toFixed(2)}
                     </td>
