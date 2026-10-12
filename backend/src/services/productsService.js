@@ -71,6 +71,15 @@ function toProductData(body = {}) {
   };
 }
 
+// El nombre identifica al producto en toda la app (selector de ventas, historial,
+// Dashboard), así que no puede repetirse entre los activos. Las variantes van en
+// el nombre: "Samsung S24 128GB". Los productos en la papelera no cuentan.
+async function ensureNameAvailable(nombre, excludeId) {
+  if (await productsRepository.existsActiveByName(nombre, excludeId)) {
+    throw new HttpError(409, `Ya existe un producto activo llamado "${nombre}"`);
+  }
+}
+
 function listActive() {
   return productsRepository.findActive();
 }
@@ -91,12 +100,18 @@ async function getById(rawId) {
 }
 
 async function create(body) {
-  return productsRepository.create(toProductData(body));
+  const product = toProductData(body);
+  await ensureNameAvailable(product.nombre);
+
+  return productsRepository.create(product);
 }
 
 async function update(rawId, body) {
   const id = parseId(rawId);
-  const updated = await productsRepository.update(id, toProductData(body));
+  const product = toProductData(body);
+  await ensureNameAvailable(product.nombre, id);
+
+  const updated = await productsRepository.update(id, product);
 
   if (!updated) {
     throw new HttpError(404, "Producto no encontrado");
@@ -114,6 +129,21 @@ async function remove(rawId) {
 
 async function restore(rawId) {
   const id = parseId(rawId);
+  const product = await productsRepository.findDeletedById(id);
+
+  if (!product) {
+    throw new HttpError(404, "Producto eliminado no encontrado");
+  }
+
+  // Mientras estaba en la papelera pudo crearse otro producto con el mismo nombre.
+  if (await productsRepository.existsActiveByName(product.nombre)) {
+    throw new HttpError(
+      409,
+      `No se puede restaurar: ya existe un producto activo llamado "${product.nombre}". ` +
+        "Cambia el nombre del producto activo y vuelve a intentarlo."
+    );
+  }
+
   const restored = await productsRepository.restore(id);
 
   if (!restored) {

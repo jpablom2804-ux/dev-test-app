@@ -45,6 +45,39 @@ async function findActiveById(id) {
   return rows[0] ?? null;
 }
 
+async function findDeletedById(id) {
+  const rows = await pool.query(
+    `
+    SELECT ${PRODUCT_COLUMNS}
+    FROM products
+    WHERE id = ?
+    AND activo = 0
+    `,
+    [id]
+  );
+
+  return rows[0] ?? null;
+}
+
+// La collation de la columna (utf8mb4_uca1400_ai_ci) ignora mayúsculas,
+// acentos y espacios finales: "Samsung S24" coincide con "samsung s24".
+// `excludeId` evita que un producto choque consigo mismo al editarlo.
+async function existsActiveByName(nombre, excludeId = 0) {
+  const rows = await pool.query(
+    `
+    SELECT 1
+    FROM products
+    WHERE nombre = ?
+    AND activo = 1
+    AND id <> ?
+    LIMIT 1
+    `,
+    [nombre, excludeId]
+  );
+
+  return rows.length > 0;
+}
+
 // Devuelve el ID generado por MariaDB.
 async function create({ nombre, descripcion, precio, stock }) {
   const result = await pool.query(
@@ -139,6 +172,8 @@ module.exports = {
   findActive,
   findDeleted,
   findActiveById,
+  findDeletedById,
+  existsActiveByName,
   create,
   update,
   softDelete,
