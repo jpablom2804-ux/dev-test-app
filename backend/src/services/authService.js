@@ -10,6 +10,12 @@ const usersRepository = require("../repositories/usersRepository");
 const BCRYPT_COST = 12;
 const MIN_PASSWORD_LENGTH = 8;
 
+// Hash "señuelo" con el mismo costo que los reales. Si el usuario no existe,
+// se compara contra este hash para que la respuesta tarde lo mismo que con
+// un usuario real: así el tiempo de respuesta no revela qué usuarios existen.
+// Se calcula una sola vez, en segundo plano, al cargar el módulo.
+const dummyHashPromise = bcrypt.hash("usuario-inexistente", BCRYPT_COST);
+
 // Devuelve el username sin espacios sobrantes, o lanza 400 si falta algún dato.
 function requireCredentials({ username, password } = {}) {
   if (!username || typeof username !== "string" || !password || typeof password !== "string") {
@@ -26,9 +32,13 @@ async function login(credentials) {
   const { password } = credentials;
   const user = await usersRepository.findByUsername(username);
 
-  // Mismo mensaje si el usuario no existe o si la contraseña no coincide,
-  // para no revelar qué usuarios existen.
-  if (!user || !(await bcrypt.compare(password, user.password_hash))) {
+  // bcrypt se ejecuta siempre, exista o no el usuario.
+  const passwordHash = user?.password_hash ?? (await dummyHashPromise);
+  const passwordMatches = await bcrypt.compare(password, passwordHash);
+
+  // Mismo mensaje y mismo tiempo si el usuario no existe o si la contraseña
+  // no coincide, para no revelar qué usuarios existen.
+  if (!user || !passwordMatches) {
     throw new HttpError(401, "Credenciales incorrectas");
   }
 
