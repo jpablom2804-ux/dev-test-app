@@ -2,18 +2,9 @@ const HttpError = require("../errors/HttpError");
 const productsRepository = require("../repositories/productsRepository");
 const salesRepository = require("../repositories/salesRepository");
 const withTransaction = require("../repositories/withTransaction");
+const { parsePositiveInt } = require("./validators");
 
 const SUMMARY_LIMIT = 5;
-
-function parsePositiveInt(rawValue, errorMessage) {
-  const value = Number(rawValue);
-
-  if (!Number.isInteger(value) || value <= 0) {
-    throw new HttpError(400, errorMessage);
-  }
-
-  return value;
-}
 
 function listAll() {
   return salesRepository.findAll();

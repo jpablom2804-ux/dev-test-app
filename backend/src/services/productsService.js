@@ -1,14 +1,9 @@
 const HttpError = require("../errors/HttpError");
 const productsRepository = require("../repositories/productsRepository");
+const { parsePositiveInt } = require("./validators");
 
 function parseId(rawId) {
-  const id = Number(rawId);
-
-  if (!Number.isInteger(id) || id <= 0) {
-    throw new HttpError(400, "El ID debe ser válido");
-  }
-
-  return id;
+  return parsePositiveInt(rawId, "El ID debe ser válido");
 }
 
 // Devuelve el mensaje del primer dato inválido, o null si el producto es válido.
