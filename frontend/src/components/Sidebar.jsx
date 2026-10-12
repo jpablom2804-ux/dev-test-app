@@ -1,304 +1,60 @@
-// ==================================================
-// REACT ROUTER
-// ==================================================
+import { NavLink } from "react-router-dom";
+import { LayoutDashboard, LogOut, Package, ShoppingCart } from "lucide-react";
 
-// NavLink permite crear enlaces de navegación
-// que saben si su ruta está actualmente activa.
-//
-// Esto nos permite aplicar una clase diferente
-// al enlace seleccionado.
-import {
-  NavLink
-} from "react-router-dom";
+// `end` en "/" evita que Dashboard quede marcado en las demás rutas.
+const NAV_LINKS = [
+  { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
+  { to: "/products", label: "Productos", icon: Package },
+  { to: "/sales", label: "Ventas", icon: ShoppingCart },
+];
 
+const ROLE_LABELS = { admin: "Administrador" };
 
-// ==================================================
-// ICONOS
-// ==================================================
-
-// LogOut:
-// icono del botón para cerrar sesión.
-//
-// ShoppingCart:
-// icono utilizado en la sección de ventas.
-import {
-  LogOut,
-  ShoppingCart
-} from "lucide-react";
-
-
-// ==================================================
-// COMPONENTE SIDEBAR
-// ==================================================
-//
-// Sidebar recibe tres props desde App.jsx:
-//
-// user
-// → información del usuario autenticado.
-//
-// onLogout
-// → función que App.jsx utiliza para cerrar sesión.
-//
-// loggingOut
-// → indica si actualmente se está procesando
-//   el cierre de sesión.
-//
-function Sidebar({
-  user,
-  onLogout,
-  loggingOut
-}) {
-
-
-  // ==================================================
-  // INICIAL DEL USUARIO
-  // ==================================================
-
-  // Obtenemos la primera letra del username
-  // para mostrarla en el avatar.
-  //
-  // Ejemplo:
-  //
-  // username = "admin"
-  //
-  // ↓
-  //
-  // initial = "A"
-  //
-  // Si no existe username utilizamos "U".
-  const initial =
-    user?.username
-      ?.charAt(0)
-      .toUpperCase() || "U";
-
-
-  // ==================================================
-  // INTERFAZ DEL SIDEBAR
-  // ==================================================
+function Sidebar({ user, onLogout, loggingOut }) {
+  const initial = user?.username?.charAt(0).toUpperCase() || "U";
 
   return (
-
     <aside className="sidebar">
-
-
-      {/* ==================================================
-          PARTE SUPERIOR
-          ================================================== */}
-
       <div>
-
-
-        {/* ==================================================
-            MARCA DE LA APLICACIÓN
-            ================================================== */}
-
         <div className="brand">
-
-
-          {/* Icono / logotipo */}
-          <div className="brand-icon">
-            D
-          </div>
-
-
-          {/* Nombre de la aplicación */}
+          <div className="brand-icon">D</div>
           <div>
-
-            <h5>
-              Dev Catalog
-            </h5>
-
-            <small>
-              Administration
-            </small>
-
+            <h5>Dev Catalog</h5>
+            <small>Administración</small>
           </div>
-
         </div>
-
-
-        {/* ==================================================
-            NAVEGACIÓN
-            ================================================== */}
 
         <nav className="sidebar-nav">
-
-
-          {/* ================================================
-              DASHBOARD
-              ================================================ */}
-
-          <NavLink
-
-            // Ruta principal.
-            to="/"
-
-            // "end" es importante para la ruta "/".
-            //
-            // Sin end, "/" podría considerarse activa
-            // también cuando estamos en:
-            //
-            // /products
-            // /sales
-            //
-            // Con end solamente queda activa
-            // cuando la URL es exactamente "/".
-            end
-
-            // NavLink proporciona isActive.
-            //
-            // Si la ruta actual coincide,
-            // aplicamos también la clase "active".
-            className={({ isActive }) =>
-              isActive
-                ? "nav-item active"
-                : "nav-item"
-            }
-          >
-
-            Dashboard
-
-          </NavLink>
-
-
-          {/* ================================================
-              PRODUCTOS
-              ================================================ */}
-
-          <NavLink
-            to="/products"
-
-            className={({ isActive }) =>
-              isActive
-                ? "nav-item active"
-                : "nav-item"
-            }
-          >
-
-            Productos
-
-          </NavLink>
-
-
-          {/* ================================================
-              VENTAS
-              ================================================ */}
-
-          <NavLink
-            to="/sales"
-
-            className={({ isActive }) =>
-              isActive
-                ? "nav-item active"
-                : "nav-item"
-            }
-          >
-
-            <ShoppingCart size={17} />
-
-            Ventas
-
-          </NavLink>
-
+          {NAV_LINKS.map(({ to, label, icon: Icon, end }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={end}
+              className={({ isActive }) => (isActive ? "nav-item active" : "nav-item")}
+            >
+              <Icon size={17} />
+              {label}
+            </NavLink>
+          ))}
         </nav>
-
       </div>
-
-
-      {/* ==================================================
-          PARTE INFERIOR
-          ================================================== */}
 
       <div className="sidebar-footer">
-
-
-        {/* ==================================================
-            INFORMACIÓN DEL USUARIO
-            ================================================== */}
-
         <div className="sidebar-user">
-
-
-          {/* ================================================
-              AVATAR
-              ================================================ */}
-
-          <div className="sidebar-user-avatar">
-
-            {initial}
-
-          </div>
-
-
-          {/* ================================================
-              DATOS DEL USUARIO
-              ================================================ */}
-
+          <div className="sidebar-user-avatar">{initial}</div>
           <div className="sidebar-user-info">
-
-
-            {/* Username */}
-            <strong>
-
-              {user?.username || "Usuario"}
-
-            </strong>
-
-
-            {/* Rol */}
-            <span>
-
-              {/* Si el rol es "admin",
-                  mostramos una versión más amigable
-                  para el usuario. */}
-              {user?.role === "admin"
-                ? "Administrador"
-                : user?.role}
-
-            </span>
-
+            <strong>{user?.username || "Usuario"}</strong>
+            <span>{ROLE_LABELS[user?.role] ?? user?.role}</span>
           </div>
-
         </div>
 
-
-        {/* ==================================================
-            CERRAR SESIÓN
-            ================================================== */}
-
-        <button
-          type="button"
-
-          className="logout-button"
-
-          // Ejecuta handleLogout de App.jsx.
-          onClick={onLogout}
-
-          // Mientras se procesa el logout
-          // deshabilitamos el botón.
-          disabled={loggingOut}
-        >
-
+        <button type="button" className="logout-button" onClick={onLogout} disabled={loggingOut}>
           <LogOut size={17} />
-
-
-          {/* El texto cambia según
-              el estado del logout. */}
-          {loggingOut
-            ? "Cerrando..."
-            : "Cerrar sesión"}
-
+          {loggingOut ? "Cerrando..." : "Cerrar sesión"}
         </button>
-
       </div>
-
     </aside>
   );
 }
-
-
-// ==================================================
-// EXPORTAR COMPONENTE
-// ==================================================
 
 export default Sidebar;
