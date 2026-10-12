@@ -6,10 +6,12 @@ import { salesApi } from "../api/salesApi";
 import ConfirmDialog from "../components/ConfirmDialog";
 import FeedbackMessage from "../components/FeedbackMessage";
 import SaleForm from "../components/sales/SaleForm";
-import SaleInfoCard from "../components/sales/SaleInfoCard";
+import SaleSummary from "../components/sales/SaleSummary";
 import SalesHistory from "../components/sales/SalesHistory";
 import { useApiData } from "../hooks/useApiData";
 import { isToday } from "../utils/format";
+
+const EMPTY_DRAFT = { productId: "", quantity: 1 };
 
 async function loadSalesPage() {
   const [products, sales] = await Promise.all([productsApi.list(), salesApi.list()]);
@@ -25,6 +27,8 @@ function countSalesToday(sales) {
 function Sales() {
   const { data, loading, error: loadError, reload } = useApiData(loadSalesPage, { products: [], sales: [] });
 
+  // La venta que se está armando. Vive aquí porque la usan el formulario y el resumen.
+  const [draft, setDraft] = useState(EMPTY_DRAFT);
   const [saving, setSaving] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [saleToCancel, setSaleToCancel] = useState(null);
@@ -36,7 +40,8 @@ function Sales() {
     setError(message);
   };
 
-  // Devuelve true si la venta se registró, para que el formulario se limpie.
+  const selectedProduct = data.products.find((product) => Number(product.id) === Number(draft.productId));
+
   const registerSale = async (sale) => {
     setSaving(true);
     setError("");
@@ -45,11 +50,10 @@ function Sales() {
     try {
       const result = await salesApi.create(sale);
       setSuccess(result.message || "Venta registrada correctamente");
+      setDraft(EMPTY_DRAFT);
       await reload(); // actualiza el stock disponible y el historial
-      return true;
     } catch (saleError) {
       setError(saleError.message);
-      return false;
     } finally {
       setSaving(false);
     }
@@ -127,8 +131,16 @@ function Sales() {
       )}
 
       <div className="sales-layout">
-        <SaleForm products={data.products} saving={saving} onSubmit={registerSale} onError={showError} />
-        <SaleInfoCard />
+        <SaleForm
+          products={data.products}
+          selectedProduct={selectedProduct}
+          draft={draft}
+          saving={saving}
+          onChange={setDraft}
+          onSubmit={registerSale}
+          onError={showError}
+        />
+        <SaleSummary product={selectedProduct} quantity={draft.quantity} />
       </div>
 
       <SalesHistory sales={data.sales} cancelling={cancelling} onCancel={openCancelDialog} />

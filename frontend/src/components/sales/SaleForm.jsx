@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Package, Plus, ShoppingCart } from "lucide-react";
 
 // Devuelve el mensaje del primer dato inválido, o null si la venta se puede enviar.
@@ -19,22 +18,21 @@ function validateSale({ product_id, cantidad }, selectedProduct) {
   return null;
 }
 
-// onSubmit debe devolver true si la venta se registró, para limpiar el formulario.
-function SaleForm({ products, saving, onSubmit, onError }) {
-  const [productId, setProductId] = useState("");
-  const [quantity, setQuantity] = useState(1);
-
-  const selectedProduct = products.find((product) => Number(product.id) === Number(productId));
+// Formulario controlado: el producto y la cantidad (`draft`) viven en la página,
+// porque el resumen de la venta también los necesita.
+function SaleForm({ products, selectedProduct, draft, saving, onChange, onSubmit, onError }) {
   const canSubmit = !saving && selectedProduct && Number(selectedProduct.stock) > 0;
 
-  const handleSubmit = async (event) => {
+  const updateField = (field) => (event) => onChange({ ...draft, [field]: event.target.value });
+
+  const handleSubmit = (event) => {
     event.preventDefault();
 
     if (saving) {
       return;
     }
 
-    const sale = { product_id: Number(productId), cantidad: Number(quantity) };
+    const sale = { product_id: Number(draft.productId), cantidad: Number(draft.quantity) };
     const validationError = validateSale(sale, selectedProduct);
 
     if (validationError) {
@@ -42,10 +40,7 @@ function SaleForm({ products, saving, onSubmit, onError }) {
       return;
     }
 
-    if (await onSubmit(sale)) {
-      setProductId("");
-      setQuantity(1);
-    }
+    onSubmit(sale);
   };
 
   return (
@@ -66,8 +61,8 @@ function SaleForm({ products, saving, onSubmit, onError }) {
           <select
             id="sale-product"
             className="sales-select"
-            value={productId}
-            onChange={(event) => setProductId(event.target.value)}
+            value={draft.productId}
+            onChange={updateField("productId")}
           >
             <option value="">Seleccione un producto</option>
             {products.map((product) => (
@@ -101,8 +96,8 @@ function SaleForm({ products, saving, onSubmit, onError }) {
             type="number"
             min="1"
             max={selectedProduct ? selectedProduct.stock : undefined}
-            value={quantity}
-            onChange={(event) => setQuantity(event.target.value)}
+            value={draft.quantity}
+            onChange={updateField("quantity")}
           />
         </div>
 

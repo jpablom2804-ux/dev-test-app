@@ -2641,26 +2641,74 @@ body {
   line-height: 1.6;
 }
 
-.sale-flow {
+/* ==================================================
+   SALE SUMMARY
+   ================================================== */
+
+.sale-summary-rows {
   display: flex;
   flex-direction: column;
+  gap: 10px;
 
-  gap: 6px;
-
-  margin-top: 20px;
-
-  padding: 14px;
+  margin-top: 18px;
+  padding: 16px;
 
   border-radius: 10px;
-
   background: #f8fafc;
+}
+
+.sale-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
 
   color: #64748b;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
 
-  text-align: center;
-
-  font-size: 12px;
+.sale-summary-row strong {
+  color: #111827;
   font-weight: 600;
+}
+
+/* El total se separa con una línea y es el número más grande. */
+.sale-summary-total {
+  padding-top: 10px;
+  border-top: 1px solid #e5e7eb;
+
+  color: #111827;
+  font-weight: 600;
+}
+
+.sale-summary-total strong {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.sale-summary-alert {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  margin-top: 14px;
+  padding: 10px 12px;
+
+  border-radius: 9px;
+
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.sale-summary-alert.warning {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.sale-summary-alert.danger {
+  background: #fef2f2;
+  color: #b91c1c;
 }
 
 
