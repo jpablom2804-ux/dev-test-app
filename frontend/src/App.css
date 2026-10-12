@@ -31,6 +31,8 @@
 
   /* Color de marca: botones principales y el ícono "D" de la barra lateral. */
   --brand-gradient: linear-gradient(135deg, #2c4be7 0%, #4f46e5 55%, #3e1e76 100%);
+  /* Fondo suave de marca: íconos y avatares sobre fondo claro. */
+  --brand-tint: linear-gradient(135deg, #eef2ff, #f5f3ff);
 }
 
 body {
@@ -119,13 +121,6 @@ body {
   transition:
     transform 0.2s ease,
     box-shadow 0.2s ease;
-}
-
-.brand-icon:hover {
-  transform: translateY(-2px) rotate(-2deg);
-
-  box-shadow:
-    0 8px 20px rgba(0, 0, 0, 0.22);
 }
 
 .brand h5 {
@@ -269,15 +264,6 @@ body {
     transform 0.22s ease,
     box-shadow 0.22s ease,
     border-color 0.22s ease;
-}
-
-.stat-card:hover {
-  transform: translateY(-5px);
-
-  box-shadow:
-    0 14px 30px rgba(15, 23, 42, 0.11);
-
-  border-color: #dbe3f0;
 }
 
 .stat-card span {
@@ -723,11 +709,7 @@ body {
   border-radius: 10px;
 
   background:
-    linear-gradient(
-      135deg,
-      #eef2ff,
-      #f5f3ff
-    );
+    var(--brand-tint);
 
   color: #4f46e5;
 
@@ -905,11 +887,7 @@ body {
   border-radius: 14px;
 
   background:
-    linear-gradient(
-      135deg,
-      #eef2ff,
-      #f5f3ff
-    );
+    var(--brand-tint);
 
   color: #6366f1;
 
@@ -1287,11 +1265,7 @@ body {
 
 .product-tab.active .tab-count {
   background:
-    linear-gradient(
-      135deg,
-      #2563eb,
-      #7c3aed
-    );
+    var(--brand-gradient);
 
   color: white;
 }
@@ -1563,13 +1537,6 @@ body {
     box-shadow 0.25s ease;
 }
 
-.login-card:hover {
-  transform: translateY(-3px);
-
-  box-shadow:
-    0 25px 60px rgba(15, 23, 42, 0.13);
-}
-
 .login-brand {
   display: flex;
 
@@ -1592,11 +1559,7 @@ body {
   border-radius: 11px;
 
   background:
-    linear-gradient(
-      135deg,
-      #2563eb,
-      #7c3aed
-    );
+    var(--brand-gradient);
 
   color: white;
 
@@ -1744,12 +1707,7 @@ body {
   border-radius: 10px;
 
   background:
-    linear-gradient(
-      135deg,
-      #2563eb 0%,
-      #4f46e5 50%,
-      #7c3aed 100%
-    );
+    var(--brand-gradient);
 
   color: white;
 
@@ -1890,11 +1848,7 @@ body {
   border-radius: 9px;
 
   background:
-    linear-gradient(
-      135deg,
-      rgba(37, 99, 235, 0.8),
-      rgba(124, 58, 237, 0.8)
-    );
+    var(--brand-gradient);
 
   color: white;
 
@@ -2098,19 +2052,11 @@ body {
     box-shadow 0.2s ease;
 }
 
-.stat-card:hover .stat-card-icon {
-  transform: scale(1.08);
-}
-
 /* PRODUCTOS */
 
 .stat-card-blue .stat-card-icon {
   background: #eff6ff;
   color: #2563eb;
-}
-
-.stat-card-blue:hover {
-  border-color: #bfdbfe;
 }
 
 /* VENTAS */
@@ -2120,19 +2066,11 @@ body {
   color: #7c3aed;
 }
 
-.stat-card-purple:hover {
-  border-color: #ddd6fe;
-}
-
 /* STOCK BAJO */
 
 .stat-card-orange .stat-card-icon {
   background: #fff7ed;
   color: #ea580c;
-}
-
-.stat-card-orange:hover {
-  border-color: #fed7aa;
 }
 
 /* SIN STOCK */
@@ -2142,8 +2080,10 @@ body {
   color: #dc2626;
 }
 
-.stat-card-red:hover {
-  border-color: #fecaca;
+/* TODO EN ORDEN: stock bajo o sin stock en cero */
+.stat-card-green .stat-card-icon {
+  background: #ecfdf3;
+  color: #16a34a;
 }
 
 /* ==================================================
@@ -2177,15 +2117,6 @@ body {
     transform 0.2s ease,
     box-shadow 0.2s ease,
     border-color 0.2s ease;
-}
-
-.dashboard-panel:hover {
-  transform: translateY(-2px);
-
-  border-color: #dce2ea;
-
-  box-shadow:
-    0 10px 28px rgba(15, 23, 42, 0.08);
 }
 
 .dashboard-panel-header {
@@ -2316,11 +2247,7 @@ body {
   border-radius: 9px;
 
   background:
-    linear-gradient(
-      135deg,
-      #eef2ff,
-      #f5f3ff
-    );
+    var(--brand-tint);
 
   color: #6366f1;
 
@@ -2518,11 +2445,7 @@ body {
   border-radius: 11px;
 
   background:
-    linear-gradient(
-      135deg,
-      #eef2ff,
-      #f5f3ff
-    );
+    var(--brand-tint);
 
   color: #6366f1;
 }
@@ -2679,13 +2602,6 @@ body {
     box-shadow 0.2s ease;
 }
 
-.sale-info-card:hover {
-  transform: translateY(-3px);
-
-  box-shadow:
-    0 10px 28px rgba(15, 23, 42, 0.08);
-}
-
 .sale-info-icon {
   width: 48px;
   height: 48px;
@@ -2699,11 +2615,7 @@ body {
   border-radius: 12px;
 
   background:
-    linear-gradient(
-      135deg,
-      #2563eb,
-      #7c3aed
-    );
+    var(--brand-gradient);
 
   color: white;
 

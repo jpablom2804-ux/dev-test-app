@@ -9,6 +9,8 @@ import ProductsEmpty from "../components/products/ProductsEmpty";
 import ProductsTable from "../components/products/ProductsTable";
 import ProductTabs from "../components/products/ProductTabs";
 import { useApiData } from "../hooks/useApiData";
+import { formatPrice } from "../utils/format";
+import { getInventoryValue } from "../utils/stock";
 
 async function loadProductLists() {
   const [active, deleted] = await Promise.all([productsApi.list(), productsApi.listDeleted()]);
@@ -146,7 +148,9 @@ function Products() {
     <div className="products-page">
       <div className="products-header">
         <div>
-          <span className="page-eyebrow">Inventario</span>
+          <span className="page-eyebrow">
+            {listsLoading ? "Inventario" : `Valor del inventario: ${formatPrice(getInventoryValue(lists.active))}`}
+          </span>
           <h1>Productos</h1>
           <p>Administra los productos disponibles en el catálogo.</p>
         </div>

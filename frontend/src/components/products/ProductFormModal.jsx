@@ -39,7 +39,7 @@ function ProductFormModal({ product, saving, error, onSubmit, onClose }) {
     <Modal className="product-modal" onClose={onClose}>
       <div className="modal-header-custom">
         <div>
-          <span className="page-eyebrow">{isEditing ? "Editar registro" : "Nuevo registro"}</span>
+          <span className="page-eyebrow">{isEditing ? `Producto #${product.id}` : "Nuevo registro"}</span>
           <h2>{isEditing ? "Editar producto" : "Nuevo producto"}</h2>
         </div>
 

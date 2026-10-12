@@ -9,10 +9,17 @@ import SaleForm from "../components/sales/SaleForm";
 import SaleInfoCard from "../components/sales/SaleInfoCard";
 import SalesHistory from "../components/sales/SalesHistory";
 import { useApiData } from "../hooks/useApiData";
+import { isToday } from "../utils/format";
 
 async function loadSalesPage() {
   const [products, sales] = await Promise.all([productsApi.list(), salesApi.list()]);
   return { products, sales };
+}
+
+// Las anuladas no cuentan: no son ventas efectivas.
+function countSalesToday(sales) {
+  const count = sales.filter((sale) => sale.estado === "completada" && isToday(sale.created_at)).length;
+  return `${count} ${count === 1 ? "venta" : "ventas"} hoy`;
 }
 
 function Sales() {
@@ -101,7 +108,7 @@ function Sales() {
     <div className="sales-page">
       <div className="products-header">
         <div>
-          <span className="page-eyebrow">Gestión comercial</span>
+          <span className="page-eyebrow">{countSalesToday(data.sales)}</span>
           <h1>Ventas</h1>
           <p>Registra ventas y consulta los movimientos realizados</p>
         </div>

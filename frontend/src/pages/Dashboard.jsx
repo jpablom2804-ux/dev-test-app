@@ -1,10 +1,10 @@
-import { AlertTriangle, Ban, Clock, Package, ShoppingCart, Trophy } from "lucide-react";
+import { AlertTriangle, Ban, CheckCircle, Clock, Package, ShoppingCart, Trophy } from "lucide-react";
 
 import { productsApi } from "../api/productsApi";
 import { salesApi } from "../api/salesApi";
 import FeedbackMessage from "../components/FeedbackMessage";
 import { useApiData } from "../hooks/useApiData";
-import { formatDate, formatUnits } from "../utils/format";
+import { formatDate, formatToday, formatUnits } from "../utils/format";
 import { LOW_STOCK_LIMIT } from "../utils/stock";
 
 const INITIAL_DATA = {
@@ -47,7 +47,7 @@ function Dashboard() {
     <div className="dashboard-page">
       <div className="page-header">
         <div>
-          <span className="page-eyebrow">Panel de control</span>
+          <span className="page-eyebrow">{formatToday()}</span>
           <h1>Dashboard</h1>
           <p>Resumen general del catálogo y las ventas</p>
         </div>
@@ -58,8 +58,8 @@ function Dashboard() {
       <div className="dashboard-grid">
         <StatCard color="blue" icon={<Package size={21} />} label="Productos" value={totalProducts} hint="Total registrados" />
         <StatCard color="purple" icon={<ShoppingCart size={21} />} label="Unidades vendidas" value={totalSold} hint="Ventas registradas" />
-        <StatCard color="orange" icon={<AlertTriangle size={21} />} label="Stock bajo" value={lowStock} hint={`${LOW_STOCK_LIMIT} unidades o menos`} />
-        <StatCard color="red" icon={<Ban size={21} />} label="Sin stock" value={outOfStock} hint="Productos agotados" />
+        <StockAlertCard color="orange" icon={AlertTriangle} label="Stock bajo" count={lowStock} hint={`${LOW_STOCK_LIMIT} unidades o menos`} />
+        <StockAlertCard color="red" icon={Ban} label="Sin stock" count={outOfStock} hint="Productos agotados" />
       </div>
 
       <div className="dashboard-details-grid">
@@ -129,6 +129,22 @@ function StatCard({ color, icon, label, value, hint }) {
       <strong>{value}</strong>
       <small>{hint}</small>
     </div>
+  );
+}
+
+// Se pinta de alerta solo cuando hay productos con problema;
+// en cero se muestra en verde con un check, porque no hay nada que revisar.
+function StockAlertCard({ color, icon: Icon, label, count, hint }) {
+  const needsAttention = count > 0;
+
+  return (
+    <StatCard
+      color={needsAttention ? color : "green"}
+      icon={needsAttention ? <Icon size={21} /> : <CheckCircle size={21} />}
+      label={label}
+      value={count}
+      hint={needsAttention ? hint : "Todo en orden"}
+    />
   );
 }
 
