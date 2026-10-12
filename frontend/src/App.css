@@ -28,6 +28,9 @@
 
   --shadow-soft: 0 8px 25px rgba(15, 23, 42, 0.08);
   --shadow-hover: 0 14px 35px rgba(15, 23, 42, 0.13);
+
+  /* Color de marca: botones principales y el ícono "D" de la barra lateral. */
+  --brand-gradient: linear-gradient(135deg, #2c4be7 0%, #4f46e5 55%, #3e1e76 100%);
 }
 
 body {
@@ -100,14 +103,9 @@ body {
 
   border-radius: 11px;
 
-  background:
-    linear-gradient(
-      135deg,
-      #ffffff,
-      #e0e7ff
-    );
+  background: var(--brand-gradient);
 
-  color: #111827;
+  color: white;
 
   display: flex;
   justify-content: center;
@@ -116,7 +114,7 @@ body {
   font-weight: 800;
 
   box-shadow:
-    0 5px 15px rgba(0, 0, 0, 0.18);
+    0 5px 15px rgba(79, 70, 229, 0.35);
 
   transition:
     transform 0.2s ease,
@@ -151,44 +149,60 @@ body {
   gap: 8px;
 }
 
+/* 15px: el menú no debe ser más grande que el nombre de la marca (16px). */
 .nav-item {
+  position: relative;
+
   color: #9ca3af;
 
   text-decoration: none;
 
-  padding: 12px 14px;
+  padding: 11px 14px;
 
   border-radius: 9px;
 
+  font-size: 15px;
+  font-weight: 500;
+
   transition:
     background-color 0.2s ease,
-    color 0.2s ease,
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
+    color 0.2s ease;
 }
 
 .nav-item:hover {
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.06);
+
+  color: white;
+}
+
+/* Índigo translúcido en lugar de un bloque blanco: se distingue sin
+   ser lo más llamativo de la pantalla. */
+.nav-item.active {
+  background: rgba(99, 102, 241, 0.18);
 
   color: white;
 
-  transform: translateX(4px);
+  font-weight: 600;
 }
 
-.nav-item.active {
-  background:
-    linear-gradient(
-      135deg,
-      #ffffff,
-      #eef2ff
-    );
+.nav-item.active svg {
+  color: #a5b4fc;
+}
 
-  color: #111827;
+/* Rayita a la izquierda que marca la sección actual. */
+.nav-item.active::before {
+  content: "";
 
-  font-weight: 600;
+  position: absolute;
+  left: 0;
+  top: 9px;
+  bottom: 9px;
 
-  box-shadow:
-    0 5px 14px rgba(0, 0, 0, 0.15);
+  width: 3px;
+
+  border-radius: 0 3px 3px 0;
+
+  background: #818cf8;
 }
 
 /* ==================================================
@@ -411,13 +425,7 @@ body {
 
   border-radius: 10px;
 
-  background:
-    linear-gradient(
-      135deg,
-      #2563eb 0%,
-      #4f46e5 55%,
-      #7c3aed 100%
-    );
+  background: var(--brand-gradient);
 
   color: white;
 
@@ -1962,12 +1970,11 @@ body {
     transform 0.18s ease;
 }
 
+/* Rojo suave: deja claro que es una acción de salida. */
 .logout-button:hover {
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(239, 68, 68, 0.12);
 
-  color: white;
-
-  transform: translateX(3px);
+  color: #fca5a5;
 }
 
 .logout-button:active {
