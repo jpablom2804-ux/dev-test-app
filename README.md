@@ -62,6 +62,34 @@ El Backend y MariaDB no se publican directamente hacia el host. La comunicación
 
 ---
 
+# Arquitectura del Backend
+
+El Backend está organizado en capas. Cada capa tiene una única responsabilidad y solo llama a la capa inferior:
+
+```text
+Request
+  ↓
+middleware/    requestLogger, cors, JSON, cookies          (todas las requests)
+  ↓
+routes/        método + URL → controller                  (index.js marca qué grupos exigen JWT)
+  ↓
+middleware/    authenticateToken, loginLimiter            (solo en las rutas que los usan)
+  ↓
+controllers/   lee req, llama al service y responde       (única capa que conoce req y res)
+  ↓
+services/      validaciones y reglas de negocio           (lanzan HttpError: 400, 404, 409…)
+  ↓
+repositories/  consultas SQL parametrizadas               (única capa que conoce MariaDB)
+  ↓
+MariaDB
+```
+
+- **Errores centralizados:** los controllers no usan `try/catch`. Express 5 envía los errores de los handlers async a `middleware/errorHandler.js`, que responde con el status y mensaje de un `HttpError`, o con un 500 genérico (y el detalle en el log) para cualquier otro error.
+- **Transacciones:** `repositories/withTransaction.js` abre la transacción, hace `COMMIT` si todo termina bien y `ROLLBACK` si se lanza un error. Lo usan el registro y la anulación de ventas.
+- **Configuración:** `config.js` es el único módulo que lee variables de entorno.
+
+---
+
 # Tecnologías utilizadas
 
 - **Frontend:** React, Vite, React Router, JavaScript, Lucide React y CSS.
@@ -431,6 +459,16 @@ Anula una venta y devuelve las unidades correspondientes al inventario.
 
 ---
 
+## Salud
+
+```http
+GET /api/health
+```
+
+Endpoint público. Responde `200` si el Backend está activo y MariaDB responde, o `503` si no hay conexión con la base de datos.
+
+---
+
 # Códigos HTTP utilizados
 
 La API utiliza códigos HTTP según el resultado de las operaciones.
@@ -460,6 +498,9 @@ Demasiados intentos de inicio de sesión.
 
 500 Internal Server Error
 Error interno del servidor.
+
+503 Service Unavailable
+Health check sin conexión a MariaDB.
 ```
 
 ---
@@ -582,6 +623,12 @@ condition: service_healthy
 
 De esta forma, Docker espera a que MariaDB esté preparado para recibir conexiones antes de iniciar el Backend.
 
+El Backend expone además `GET /api/health`, que comprueba que la API responde y que puede consultar MariaDB:
+
+```bash
+curl http://localhost:8080/api/health
+```
+
 ---
 
 # Inicialización de la base de datos
@@ -638,6 +685,19 @@ El archivo `.env` no debe almacenarse en el repositorio.
 
 # Ejecutar el proyecto
 
+Clonar el repositorio:
+
+```bash
+git clone https://github.com/jpablom2804-ux/dev-test-app.git
+cd dev-test-app
+```
+
+Crear el archivo `.env` en la raíz con la estructura de la sección [Variables de entorno](#variables-de-entorno). Como contiene credenciales, conviene que solo su dueño pueda leerlo:
+
+```bash
+chmod 600 .env
+```
+
 Desde la raíz del proyecto:
 
 ```bash
@@ -675,6 +735,22 @@ http://localhost:8080
 ```
 
 o desde el entorno utilizado para acceder a la máquina virtual mediante el puerto configurado.
+
+---
+
+# Crear el usuario administrador
+
+`init.sql` crea las tablas, pero no crea usuarios: ninguna contraseña queda escrita en el repositorio.
+
+Con los contenedores en ejecución, crear el primer usuario:
+
+```bash
+docker compose exec backend npm run create-user -- admin 'una-contraseña-segura'
+```
+
+El script (`backend/src/scripts/createUser.js`) reutiliza la misma lógica que la API: valida los datos, guarda la contraseña como hash bcrypt y avisa si el usuario ya existe.
+
+Después se puede iniciar sesión en `http://localhost:8080` con ese usuario y contraseña.
 
 ---
 
@@ -764,7 +840,13 @@ Express
 ↓
 authenticateToken
 ↓
-products.js
+routes/products.js
+↓
+productsController
+↓
+productsService        (validación)
+↓
+productsRepository     (SQL)
 ↓
 MariaDB
 ↓
@@ -788,9 +870,11 @@ Express
 ↓
 authenticateToken
 ↓
-sales.js
+salesController
 ↓
-BEGIN TRANSACTION
+salesService
+↓
+withTransaction → BEGIN TRANSACTION
 ↓
 SELECT producto FOR UPDATE
 ↓
@@ -847,16 +931,32 @@ dev-test-app/
 │   ├── package.json
 │   │
 │   └── src/
-│       ├── server.js
-│       ├── db.js
+│       ├── server.js            arranca el servidor y lo cierra limpio con SIGTERM
+│       ├── app.js               middlewares globales, rutas y manejo de errores
+│       ├── config.js            variables de entorno, leídas en un solo lugar
+│       ├── db.js                pool de conexiones a MariaDB
+│       │
+│       ├── routes/
+│       │   ├── index.js         monta los routers y marca cuáles exigen JWT
+│       │   ├── auth.js
+│       │   ├── health.js
+│       │   ├── products.js
+│       │   └── sales.js
 │       │
 │       ├── middleware/
-│       │   └── auth.js
+│       │   ├── auth.js          verifica el JWT de la cookie
+│       │   ├── loginLimiter.js  rate limit del login
+│       │   ├── requestLogger.js
+│       │   └── errorHandler.js  respuesta única para errores y 404
 │       │
-│       └── routes/
-│           ├── auth.js
-│           ├── products.js
-│           └── sales.js
+│       ├── controllers/         authController, productsController, salesController
+│       ├── services/            authService, productsService, salesService
+│       ├── repositories/        usersRepository, productsRepository, salesRepository,
+│       │                        withTransaction
+│       ├── errors/
+│       │   └── HttpError.js
+│       └── scripts/
+│           └── createUser.js    crea usuarios desde la terminal
 │
 ├── database/
 │   └── init.sql
