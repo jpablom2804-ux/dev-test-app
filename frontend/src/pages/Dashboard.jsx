@@ -1,33 +1,26 @@
-import { useEffect, useState } from "react";
 import { AlertTriangle, Ban, Clock, Package, ShoppingCart, Trophy } from "lucide-react";
 
 import { productsApi } from "../api/productsApi";
 import { salesApi } from "../api/salesApi";
-import { LOW_STOCK_LIMIT } from "../utils/stock";
+import FeedbackMessage from "../components/FeedbackMessage";
+import { useApiData } from "../hooks/useApiData";
 import { formatDate, formatUnits } from "../utils/format";
+import { LOW_STOCK_LIMIT } from "../utils/stock";
 
-const EMPTY_SUMMARY = {
-  unidades_vendidas: 0,
-  productos_mas_vendidos: [],
-  ventas_recientes: [],
+const INITIAL_DATA = {
+  products: [],
+  salesSummary: { unidades_vendidas: 0, productos_mas_vendidos: [], ventas_recientes: [] },
 };
 
-function Dashboard() {
-  const [products, setProducts] = useState([]);
-  const [salesSummary, setSalesSummary] = useState(EMPTY_SUMMARY);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+// Las dos consultas son independientes, así que van en paralelo.
+async function loadDashboard() {
+  const [products, salesSummary] = await Promise.all([productsApi.list(), salesApi.summary()]);
+  return { products, salesSummary };
+}
 
-  useEffect(() => {
-    // Las dos consultas son independientes, así que van en paralelo.
-    Promise.all([productsApi.list(), salesApi.summary()])
-      .then(([productsData, summaryData]) => {
-        setProducts(productsData);
-        setSalesSummary(summaryData);
-      })
-      .catch((error) => setError(error.message))
-      .finally(() => setLoading(false));
-  }, []);
+function Dashboard() {
+  const { data, loading, error } = useApiData(loadDashboard, INITIAL_DATA);
+  const { products, salesSummary } = data;
 
   const totalProducts = products.length;
   const outOfStock = products.filter((product) => Number(product.stock) === 0).length;
@@ -60,7 +53,7 @@ function Dashboard() {
         </div>
       </div>
 
-      {error && <div className="feedback-message error-message">{error}</div>}
+      {error && <FeedbackMessage type="error">{error}</FeedbackMessage>}
 
       <div className="dashboard-grid">
         <StatCard color="blue" icon={<Package size={21} />} label="Productos" value={totalProducts} hint="Total registrados" />

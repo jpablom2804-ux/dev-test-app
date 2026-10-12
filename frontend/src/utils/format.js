@@ -13,6 +13,12 @@ export function formatDate(date) {
   });
 }
 
+// Precio en dólares con dos decimales, por ejemplo "$10.50".
+// El Backend puede enviarlo como número o como texto ("10.50").
+export function formatPrice(value) {
+  return `$${Number(value).toFixed(2)}`;
+}
+
 // "1 unidad" o "3 unidades".
 export function formatUnits(quantity) {
   return `${quantity} ${quantity === 1 ? "unidad" : "unidades"}`;
