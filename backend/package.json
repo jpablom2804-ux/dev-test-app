@@ -7,7 +7,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "create-user": "node src/scripts/createUser.js"
+    "create-user": "node src/scripts/createUser.js",
+    "seed-demo": "node src/scripts/seedDemo.js"
   },
   "keywords": [],
   "author": "",
