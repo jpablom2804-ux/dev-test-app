@@ -1,4 +1,5 @@
 const HttpError = require("../errors/HttpError");
+const categoriesRepository = require("../repositories/categoriesRepository");
 const productsRepository = require("../repositories/productsRepository");
 const { parsePositiveInt } = require("./validators");
 
@@ -8,7 +9,7 @@ function parseId(rawId) {
 
 // Devuelve el mensaje del primer dato inválido, o null si el producto es válido.
 // Los límites de longitud corresponden a las columnas de MariaDB.
-function validateProduct({ nombre, descripcion, precio, stock }) {
+function validateProduct({ nombre, descripcion, precio, stock, category_id }) {
   if (!nombre || typeof nombre !== "string" || nombre.trim() === "") {
     return "El nombre es obligatorio";
   }
@@ -50,6 +51,12 @@ function validateProduct({ nombre, descripcion, precio, stock }) {
     return "El stock debe ser un entero mayor o igual a 0";
   }
 
+  const categoryId = Number(category_id);
+
+  if (!Number.isInteger(categoryId) || categoryId <= 0) {
+    return "Selecciona una categoría";
+  }
+
   return null;
 }
 
@@ -68,7 +75,16 @@ function toProductData(body = {}) {
     descripcion: body.descripcion?.trim() || null,
     precio: Number(body.precio),
     stock: Number(body.stock),
+    category_id: Number(body.category_id),
   };
+}
+
+// La clave foránea igual rechazaría una categoría inexistente, pero con un
+// error de base de datos (500); así el cliente recibe un mensaje claro.
+async function ensureCategoryExists(categoryId) {
+  if (!(await categoriesRepository.existsById(categoryId))) {
+    throw new HttpError(400, "La categoría seleccionada no existe");
+  }
 }
 
 // El nombre identifica al producto en toda la app (selector de ventas, historial,
@@ -80,8 +96,14 @@ async function ensureNameAvailable(nombre, excludeId) {
   }
 }
 
-function listActive() {
-  return productsRepository.findActive();
+// `rawCategoryId` viene del query string (?categoryId=3) y es opcional.
+function listActive(rawCategoryId) {
+  const categoryId =
+    rawCategoryId === undefined || rawCategoryId === ""
+      ? null
+      : parsePositiveInt(rawCategoryId, "La categoría debe ser un ID válido");
+
+  return productsRepository.findActive(categoryId);
 }
 
 function listDeleted() {
@@ -101,6 +123,7 @@ async function getById(rawId) {
 
 async function create(body) {
   const product = toProductData(body);
+  await ensureCategoryExists(product.category_id);
   await ensureNameAvailable(product.nombre);
 
   return productsRepository.create(product);
@@ -109,6 +132,7 @@ async function create(body) {
 async function update(rawId, body) {
   const id = parseId(rawId);
   const product = toProductData(body);
+  await ensureCategoryExists(product.category_id);
   await ensureNameAvailable(product.nombre, id);
 
   const updated = await productsRepository.update(id, product);

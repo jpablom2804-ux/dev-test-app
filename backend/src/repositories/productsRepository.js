@@ -3,41 +3,50 @@ const pool = require("../db");
 // Los productos usan soft delete: al eliminarlos se marcan con activo = 0
 // en lugar de borrar la fila, para poder restaurarlos.
 
-const PRODUCT_COLUMNS = `
-  id,
-  nombre,
-  descripcion,
-  precio,
-  stock,
-  created_at,
-  updated_at
+// LEFT JOIN: un producto sin categoría (creado antes de que existieran)
+// también aparece, con `categoria` en NULL, en lugar de desaparecer.
+const PRODUCT_SELECT = `
+  SELECT
+    p.id,
+    p.nombre,
+    p.descripcion,
+    p.precio,
+    p.stock,
+    p.category_id,
+    c.nombre AS categoria,
+    p.created_at,
+    p.updated_at
+  FROM products p
+  LEFT JOIN categories c ON c.id = p.category_id
 `;
 
-function findActive() {
-  return pool.query(`
-    SELECT ${PRODUCT_COLUMNS}
-    FROM products
-    WHERE activo = 1
-    ORDER BY id DESC
-  `);
+// Sin `categoryId` devuelve todos los activos; con uno, solo los de esa categoría.
+function findActive(categoryId = null) {
+  return pool.query(
+    `
+    ${PRODUCT_SELECT}
+    WHERE p.activo = 1
+    AND (? IS NULL OR p.category_id = ?)
+    ORDER BY p.id DESC
+    `,
+    [categoryId, categoryId]
+  );
 }
 
 function findDeleted() {
   return pool.query(`
-    SELECT ${PRODUCT_COLUMNS}
-    FROM products
-    WHERE activo = 0
-    ORDER BY updated_at DESC
+    ${PRODUCT_SELECT}
+    WHERE p.activo = 0
+    ORDER BY p.updated_at DESC
   `);
 }
 
 async function findActiveById(id) {
   const rows = await pool.query(
     `
-    SELECT ${PRODUCT_COLUMNS}
-    FROM products
-    WHERE id = ?
-    AND activo = 1
+    ${PRODUCT_SELECT}
+    WHERE p.id = ?
+    AND p.activo = 1
     `,
     [id]
   );
@@ -48,10 +57,9 @@ async function findActiveById(id) {
 async function findDeletedById(id) {
   const rows = await pool.query(
     `
-    SELECT ${PRODUCT_COLUMNS}
-    FROM products
-    WHERE id = ?
-    AND activo = 0
+    ${PRODUCT_SELECT}
+    WHERE p.id = ?
+    AND p.activo = 0
     `,
     [id]
   );
@@ -79,13 +87,13 @@ async function existsActiveByName(nombre, excludeId = 0) {
 }
 
 // Devuelve el ID generado por MariaDB.
-async function create({ nombre, descripcion, precio, stock }) {
+async function create({ nombre, descripcion, precio, stock, category_id }) {
   const result = await pool.query(
     `
-    INSERT INTO products (nombre, descripcion, precio, stock)
-    VALUES (?, ?, ?, ?)
+    INSERT INTO products (nombre, descripcion, precio, stock, category_id)
+    VALUES (?, ?, ?, ?, ?)
     `,
-    [nombre, descripcion, precio, stock]
+    [nombre, descripcion, precio, stock, category_id]
   );
 
   return Number(result.insertId);
@@ -94,15 +102,15 @@ async function create({ nombre, descripcion, precio, stock }) {
 // Las funciones que modifican devuelven false si no había
 // ningún producto en el estado esperado con ese ID.
 
-async function update(id, { nombre, descripcion, precio, stock }) {
+async function update(id, { nombre, descripcion, precio, stock, category_id }) {
   const result = await pool.query(
     `
     UPDATE products
-    SET nombre = ?, descripcion = ?, precio = ?, stock = ?
+    SET nombre = ?, descripcion = ?, precio = ?, stock = ?, category_id = ?
     WHERE id = ?
     AND activo = 1
     `,
-    [nombre, descripcion, precio, stock, id]
+    [nombre, descripcion, precio, stock, category_id, id]
   );
 
   return result.affectedRows > 0;
