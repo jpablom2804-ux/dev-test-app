@@ -1,9 +1,9 @@
-// Aviso de éxito o error. `type` es "success" o "error".
+// Aviso de éxito, advertencia o error. `type` es "success", "warning" o "error".
 function FeedbackMessage({ type, icon, children }) {
   return (
-    <div className={`feedback-message ${type}-message`}>
+    <div className={`alert alert--${type}`} role={type === "error" ? "alert" : "status"}>
       {icon}
-      {children}
+      <span>{children}</span>
     </div>
   );
 }

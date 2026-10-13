@@ -1,0 +1,698 @@
+/* ==================================================
+   BOTONES
+   ================================================== */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  height: 38px;
+  padding: 0 16px;
+
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, filter 0.15s ease;
+}
+
+.btn--primary {
+  background: var(--brand-gradient);
+  box-shadow: 0 6px 16px var(--brand-glow);
+  color: #fff;
+}
+
+.btn--primary:hover:not(:disabled) {
+  filter: brightness(1.12);
+}
+
+.btn--secondary {
+  background: var(--surface-2);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.btn--secondary:hover:not(:disabled) {
+  background: var(--surface-3);
+  border-color: var(--border-strong);
+  color: var(--text-strong);
+}
+
+.btn--danger {
+  background: var(--danger-solid);
+  color: #fff;
+}
+
+.btn--danger:hover:not(:disabled) {
+  filter: brightness(1.12);
+}
+
+/* Acción delicada dentro de una tabla: se ve, pero no grita. */
+.btn--danger-soft {
+  background: var(--danger-bg);
+  border-color: var(--danger-border);
+  color: var(--danger);
+}
+
+.btn--danger-soft:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.22);
+}
+
+.btn--sm {
+  height: 30px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+
+.btn--block {
+  width: 100%;
+}
+
+/* Gris neutro: se distingue claramente de un botón activo. */
+.btn:disabled {
+  background: var(--surface-3);
+  border-color: var(--border);
+  box-shadow: none;
+  color: var(--text-muted);
+  cursor: not-allowed;
+  filter: none;
+}
+
+.icon-btn {
+  display: inline-grid;
+  place-items: center;
+
+  width: 32px;
+  height: 32px;
+
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+
+  color: var(--text-soft);
+
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.icon-btn:hover:not(:disabled) {
+  background: var(--surface-3);
+  border-color: var(--border-strong);
+  color: var(--text-strong);
+}
+
+.icon-btn--danger:hover:not(:disabled) {
+  background: var(--danger-bg);
+  border-color: var(--danger-border);
+  color: var(--danger);
+}
+
+.icon-btn--ghost {
+  border-color: transparent;
+  background: transparent;
+}
+
+/* ==================================================
+   FORMULARIOS
+   ================================================== */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field__label {
+  color: var(--text-soft);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.input,
+.select,
+.textarea {
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+
+  color: var(--text-strong);
+  font-size: 14px;
+
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.textarea {
+  height: auto;
+  min-height: 84px;
+  padding: 10px 12px;
+  resize: vertical;
+}
+
+.input::placeholder,
+.textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.input:hover:not(:disabled),
+.select:hover:not(:disabled),
+.textarea:hover:not(:disabled) {
+  border-color: var(--border-strong);
+}
+
+.input:focus,
+.select:focus,
+.textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: var(--focus-ring);
+}
+
+.input:disabled,
+.select:disabled,
+.textarea:disabled {
+  opacity: 0.6;
+}
+
+/* Input con un ícono a la izquierda (búsqueda, login). */
+.input-icon {
+  position: relative;
+}
+
+.input-icon > svg {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+
+  color: var(--text-muted);
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.input-icon > .input {
+  padding-left: 38px;
+}
+
+/* ==================================================
+   PANELES
+   ================================================== */
+
+.panel {
+  min-width: 0;
+
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+/* Un panel que contiene una tabla recorta sus esquinas. */
+.panel--table {
+  overflow: hidden;
+}
+
+.panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.panel__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  font-size: 15px;
+}
+
+.panel__title svg {
+  color: var(--text-muted);
+}
+
+.panel__meta {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+
+.panel__body {
+  padding: 18px;
+}
+
+.panel__footer {
+  padding: 10px 18px;
+  border-top: 1px solid var(--border);
+
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.toolbar__search {
+  width: min(320px, 100%);
+}
+
+/* ==================================================
+   TABLAS
+   ================================================== */
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.data-table th {
+  padding: 10px 16px;
+
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  text-align: left;
+  white-space: nowrap;
+}
+
+/* Altura mínima fija: las filas con un botón miden lo mismo que las demás. */
+.data-table td {
+  height: 52px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.data-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.data-table tbody tr {
+  transition: background-color 0.12s ease;
+}
+
+.data-table tbody tr:hover {
+  background: rgba(129, 140, 248, 0.05);
+}
+
+/* Columnas numéricas: cifras a la derecha y del mismo ancho. */
+.data-table .num {
+  text-align: right;
+}
+
+.data-table__name strong {
+  display: block;
+  color: var(--text-strong);
+  font-weight: 500;
+}
+
+.data-table__name span {
+  display: block;
+  max-width: 48ch;
+  margin-top: 2px;
+  overflow: hidden;
+
+  color: var(--text-muted);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.data-table__muted {
+  color: var(--text-muted);
+}
+
+.data-table__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.data-table th.data-table__actions-col {
+  text-align: right;
+}
+
+/* ==================================================
+   BADGES
+   ================================================== */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 999px;
+
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.badge::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.badge--success {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.badge--neutral {
+  background: var(--surface-3);
+  color: var(--text-soft);
+}
+
+/* ==================================================
+   NIVEL DE STOCK
+   El número y una barra que muestra cuánto queda.
+   ================================================== */
+
+.stock-level {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.stock-level__value {
+  min-width: 3ch;
+
+  color: var(--text-strong);
+  font-family: var(--font-mono);
+  text-align: right;
+}
+
+.stock-level__track {
+  width: 72px;
+  height: 6px;
+  overflow: hidden;
+
+  border-radius: 999px;
+  background: var(--surface-3);
+}
+
+.stock-level__fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--success);
+}
+
+.stock-level__label {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.stock-level--low .stock-level__fill {
+  background: var(--warning);
+}
+
+.stock-level--low .stock-level__label {
+  color: var(--warning);
+}
+
+.stock-level--out .stock-level__label {
+  color: var(--danger);
+}
+
+/* ==================================================
+   PESTAÑAS
+   ================================================== */
+
+.tabs {
+  display: inline-flex;
+  gap: 4px;
+
+  padding: 3px;
+
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  height: 30px;
+  padding: 0 12px;
+
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+
+  color: var(--text-soft);
+  font-size: 14px;
+  font-weight: 500;
+
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.tab:hover {
+  color: var(--text-strong);
+}
+
+.tab--active {
+  background: var(--surface-3);
+  color: var(--text-strong);
+}
+
+.tab__count {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.tab--active .tab__count {
+  color: var(--accent);
+}
+
+/* ==================================================
+   AVISOS
+   ================================================== */
+
+.alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+
+  padding: 11px 14px;
+
+  border: 1px solid;
+  border-radius: var(--radius);
+
+  font-size: 14px;
+}
+
+.alert > svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.alert--success {
+  background: var(--success-bg);
+  border-color: var(--success-border);
+  color: var(--success);
+}
+
+.alert--warning {
+  background: var(--warning-bg);
+  border-color: var(--warning-border);
+  color: var(--warning);
+}
+
+.alert--error {
+  background: var(--danger-bg);
+  border-color: var(--danger-border);
+  color: var(--danger);
+}
+
+/* ==================================================
+   MODALES
+   ================================================== */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+
+  display: grid;
+  place-items: center;
+
+  padding: 20px;
+
+  background: rgba(2, 6, 23, 0.72);
+  backdrop-filter: blur(3px);
+
+  animation: fade-in 0.15s ease;
+}
+
+.modal {
+  width: 100%;
+  max-width: 520px;
+
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-overlay);
+
+  animation: modal-in 0.18s ease;
+}
+
+.modal--sm {
+  max-width: 440px;
+}
+
+.modal__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal__eyebrow {
+  display: block;
+  margin-bottom: 4px;
+
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.modal__title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  font-size: 17px;
+}
+
+.modal__title--danger svg {
+  color: var(--danger);
+}
+
+.modal__body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  padding: 18px 20px;
+
+  font-size: 14px;
+}
+
+.modal__note {
+  padding: 10px 12px;
+
+  border-radius: var(--radius);
+  background: var(--surface-2);
+
+  color: var(--text-soft);
+  font-size: 13px;
+}
+
+.modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+
+  padding: 14px 20px;
+  border-top: 1px solid var(--border);
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+
+/* ==================================================
+   ESTADOS VACÍOS
+   ================================================== */
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+
+  padding: 44px 20px;
+
+  color: var(--text-soft);
+  font-size: 14px;
+  text-align: center;
+}
+
+.empty > svg {
+  margin-bottom: 6px;
+  color: var(--text-muted);
+}
+
+.empty strong {
+  color: var(--text-strong);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.empty p {
+  max-width: 42ch;
+}
+
+.empty .btn {
+  margin-top: 12px;
+}
+
+@media (max-width: 640px) {
+  .field-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

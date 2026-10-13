@@ -1,11 +1,13 @@
-import { AlertTriangle, Ban, CheckCircle, Clock, Package, ShoppingCart, Trophy } from "lucide-react";
+import { CheckCircle, History, PackageSearch, Trophy } from "lucide-react";
 
 import { productsApi } from "../api/productsApi";
 import { salesApi } from "../api/salesApi";
 import FeedbackMessage from "../components/FeedbackMessage";
+import PageHeader from "../components/PageHeader";
+import StockLevel from "../components/StockLevel";
 import { useApiData } from "../hooks/useApiData";
-import { formatDate, formatToday, formatUnits } from "../utils/format";
-import { LOW_STOCK_LIMIT } from "../utils/stock";
+import { formatDate, formatPrice, formatToday, formatUnits } from "../utils/format";
+import { getInventoryValue, getProductsToRestock } from "../utils/stock";
 
 const INITIAL_DATA = {
   products: [],
@@ -22,156 +24,159 @@ function Dashboard() {
   const { data, loading, error } = useApiData(loadDashboard, INITIAL_DATA);
   const { products, salesSummary } = data;
 
-  const totalProducts = products.length;
-  const outOfStock = products.filter((product) => Number(product.stock) === 0).length;
-  const lowStock = products.filter(
-    (product) => Number(product.stock) > 0 && Number(product.stock) <= LOW_STOCK_LIMIT
-  ).length;
-
-  const totalSold = Number(salesSummary.unidades_vendidas || 0);
-  const topProducts = salesSummary.productos_mas_vendidos || [];
-  const recentSales = salesSummary.ventas_recientes || [];
-
   if (loading) {
-    return (
-      <div className="page-header">
-        <div>
-          <h1>Dashboard</h1>
-          <p>Cargando información...</p>
-        </div>
-      </div>
-    );
+    return <PageHeader meta="Cargando resumen…" title="Dashboard" />;
   }
 
+  const toRestock = getProductsToRestock(products);
+  const outOfStock = toRestock.filter((product) => Number(product.stock) === 0).length;
+  const lowStock = toRestock.length - outOfStock;
+
   return (
-    <div className="dashboard-page">
-      <div className="page-header">
-        <div>
-          <span className="page-eyebrow">{formatToday()}</span>
-          <h1>Dashboard</h1>
-          <p>Resumen general del catálogo y las ventas</p>
-        </div>
-      </div>
+    <>
+      <PageHeader meta={formatToday()} title="Dashboard" />
 
       {error && <FeedbackMessage type="error">{error}</FeedbackMessage>}
 
+      <dl className="summary-strip">
+        <Metric label="Productos activos" value={products.length} />
+        <Metric label="Unidades vendidas" value={Number(salesSummary.unidades_vendidas || 0)} />
+        <Metric label="Valor del inventario" value={formatPrice(getInventoryValue(products))} />
+        <Metric label="Con stock bajo" value={lowStock} tone={lowStock > 0 ? "warning" : null} />
+        <Metric label="Agotados" value={outOfStock} tone={outOfStock > 0 ? "danger" : null} />
+      </dl>
+
       <div className="dashboard-grid">
-        <StatCard color="blue" icon={<Package size={21} />} label="Productos" value={totalProducts} hint="Total registrados" />
-        <StatCard color="purple" icon={<ShoppingCart size={21} />} label="Unidades vendidas" value={totalSold} hint="Ventas registradas" />
-        <StockAlertCard color="orange" icon={AlertTriangle} label="Stock bajo" count={lowStock} hint={`${LOW_STOCK_LIMIT} unidades o menos`} />
-        <StockAlertCard color="red" icon={Ban} label="Sin stock" count={outOfStock} hint="Productos agotados" />
+        <RestockPanel products={toRestock} />
+        <TopProductsPanel products={salesSummary.productos_mas_vendidos || []} />
       </div>
 
-      <div className="dashboard-details-grid">
-        <DashboardPanel
-          icon={<Trophy size={19} />}
-          title="Productos más vendidos"
-          description="Productos con mayor cantidad de unidades vendidas"
-        >
-          {topProducts.length === 0 ? (
-            <EmptyPanel
-              icon={<Trophy size={28} />}
-              title="Sin ventas registradas"
-              text="Los productos más vendidos aparecerán aquí."
-            />
-          ) : (
-            <div className="top-products-list">
-              {topProducts.map((product, index) => (
-                <div className="top-product-item" key={product.id}>
-                  <div className="top-product-position">{index + 1}</div>
-                  <div className="top-product-info">
-                    <strong>{product.nombre}</strong>
-                    <span>Producto #{product.id}</span>
-                  </div>
-                  <div className="top-product-sales">{formatUnits(product.unidades_vendidas)}</div>
-                </div>
-              ))}
-            </div>
-          )}
-        </DashboardPanel>
+      <RecentSalesPanel sales={salesSummary.ventas_recientes || []} />
+    </>
+  );
+}
 
-        <DashboardPanel icon={<Clock size={19} />} title="Ventas recientes" description="Últimos movimientos registrados">
-          {recentSales.length === 0 ? (
-            <EmptyPanel
-              icon={<Clock size={28} />}
-              title="Sin ventas recientes"
-              text="Cuando registres una venta aparecerá aquí."
-            />
-          ) : (
-            <div className="recent-sales-list">
-              {recentSales.map((sale) => (
-                <div className="recent-sale-item" key={sale.id}>
-                  <div className="recent-sale-icon">
-                    <ShoppingCart size={17} />
-                  </div>
-                  <div className="recent-sale-info">
-                    <strong>{sale.producto}</strong>
-                    <span>{formatDate(sale.created_at)}</span>
-                  </div>
-                  <div className="recent-sale-quantity">{formatUnits(sale.cantidad)}</div>
-                </div>
-              ))}
-            </div>
-          )}
-        </DashboardPanel>
-      </div>
+// Una cifra de la franja. Solo se pinta de alerta cuando hay algo que revisar.
+function Metric({ label, value, tone }) {
+  return (
+    <div className={tone ? `summary-strip__item summary-strip__item--${tone}` : "summary-strip__item"}>
+      <dt>{label}</dt>
+      <dd>{value}</dd>
     </div>
   );
 }
 
-function StatCard({ color, icon, label, value, hint }) {
+function RestockPanel({ products }) {
   return (
-    <div className={`stat-card stat-card-${color}`}>
-      <div className="stat-card-top">
-        <div className="stat-card-icon">{icon}</div>
-        <span>{label}</span>
+    <section className="panel">
+      <div className="panel__header">
+        <h2 className="panel__title">
+          <PackageSearch size={16} />
+          Necesitan reposición
+        </h2>
+        <span className="panel__meta">{products.length} productos</span>
       </div>
-      <strong>{value}</strong>
-      <small>{hint}</small>
-    </div>
-  );
-}
 
-// Se pinta de alerta solo cuando hay productos con problema;
-// en cero se muestra en verde con un check, porque no hay nada que revisar.
-function StockAlertCard({ color, icon: Icon, label, count, hint }) {
-  const needsAttention = count > 0;
-
-  return (
-    <StatCard
-      color={needsAttention ? color : "green"}
-      icon={needsAttention ? <Icon size={21} /> : <CheckCircle size={21} />}
-      label={label}
-      value={count}
-      hint={needsAttention ? hint : "Todo en orden"}
-    />
-  );
-}
-
-function DashboardPanel({ icon, title, description, children }) {
-  return (
-    <section className="dashboard-panel">
-      <div className="dashboard-panel-header">
-        <div>
-          <div className="dashboard-panel-title">
-            {icon}
-            <h2>{title}</h2>
-          </div>
-          <p>{description}</p>
+      {products.length === 0 ? (
+        <div className="empty">
+          <CheckCircle size={28} />
+          <strong>Todo en orden</strong>
+          <p>Ningún producto activo está por debajo del mínimo de stock.</p>
         </div>
-      </div>
-      {children}
+      ) : (
+        <ul className="item-list">
+          {products.map((product) => (
+            <li key={product.id}>
+              <span className="item-list__name">{product.nombre}</span>
+              <StockLevel stock={product.stock} />
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }
 
-function EmptyPanel({ icon, title, text }) {
+function TopProductsPanel({ products }) {
   return (
-    <div className="dashboard-empty">
-      {icon}
-      <strong>{title}</strong>
-      <span>{text}</span>
-    </div>
+    <section className="panel">
+      <div className="panel__header">
+        <h2 className="panel__title">
+          <Trophy size={16} />
+          Más vendidos
+        </h2>
+        <span className="panel__meta">sin contar anuladas</span>
+      </div>
+
+      {products.length === 0 ? (
+        <div className="empty">
+          <Trophy size={28} />
+          <strong>Sin ventas todavía</strong>
+          <p>El ranking aparece con la primera venta.</p>
+        </div>
+      ) : (
+        <ol className="item-list">
+          {products.map((product, index) => (
+            <li key={product.id}>
+              <span className="item-list__main">
+                <span className="item-list__rank">{index + 1}</span>
+                <span className="item-list__name">{product.nombre}</span>
+              </span>
+              <span className="item-list__value">{formatUnits(product.unidades_vendidas)}</span>
+            </li>
+          ))}
+        </ol>
+      )}
+    </section>
+  );
+}
+
+function RecentSalesPanel({ sales }) {
+  return (
+    <section className="panel panel--table">
+      <div className="panel__header">
+        <h2 className="panel__title">
+          <History size={16} />
+          Ventas recientes
+        </h2>
+        <span className="panel__meta">últimas {sales.length}</span>
+      </div>
+
+      {sales.length === 0 ? (
+        <div className="empty">
+          <History size={28} />
+          <strong>Sin ventas recientes</strong>
+          <p>Cuando registres una venta, aparece aquí.</p>
+        </div>
+      ) : (
+        <div className="table-wrap">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Venta</th>
+                <th>Producto</th>
+                <th className="num">Cantidad</th>
+                <th className="num">Total</th>
+                <th>Fecha</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sales.map((sale) => (
+                <tr key={sale.id}>
+                  <td className="mono data-table__muted">#{sale.id}</td>
+                  <td className="data-table__name">
+                    <strong>{sale.producto}</strong>
+                  </td>
+                  <td className="num">{sale.cantidad}</td>
+                  <td className="num">{formatPrice(sale.cantidad * sale.precio_unitario)}</td>
+                  <td className="mono data-table__muted">{formatDate(sale.created_at)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
   );
 }
 

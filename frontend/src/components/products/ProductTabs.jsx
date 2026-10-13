@@ -1,6 +1,6 @@
 function ProductTabs({ activeTab, activeCount, deletedCount, onChange }) {
   return (
-    <div className="product-tabs">
+    <div className="tabs" role="group" aria-label="Lista de productos">
       <TabButton selected={activeTab === "active"} count={activeCount} onClick={() => onChange("active")}>
         Activos
       </TabButton>
@@ -13,9 +13,9 @@ function ProductTabs({ activeTab, activeCount, deletedCount, onChange }) {
 
 function TabButton({ selected, count, onClick, children }) {
   return (
-    <button className={selected ? "product-tab active" : "product-tab"} onClick={onClick}>
+    <button type="button" className={selected ? "tab tab--active" : "tab"} aria-pressed={selected} onClick={onClick}>
       {children}
-      <span className="tab-count">{count}</span>
+      <span className="tab__count">{count}</span>
     </button>
   );
 }

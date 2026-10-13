@@ -5,6 +5,7 @@ import { productsApi } from "../api/productsApi";
 import { salesApi } from "../api/salesApi";
 import ConfirmDialog from "../components/ConfirmDialog";
 import FeedbackMessage from "../components/FeedbackMessage";
+import PageHeader from "../components/PageHeader";
 import SaleForm from "../components/sales/SaleForm";
 import SaleSummary from "../components/sales/SaleSummary";
 import SalesHistory from "../components/sales/SalesHistory";
@@ -95,37 +96,24 @@ function Sales() {
   };
 
   if (loading) {
-    return (
-      <div className="page-header">
-        <div>
-          <h1>Ventas</h1>
-          <p>Cargando información...</p>
-        </div>
-      </div>
-    );
+    return <PageHeader meta="Cargando ventas…" title="Ventas" />;
   }
 
   // Mientras el diálogo de anulación está abierto, el error se muestra dentro de él.
   const pageError = error || loadError;
 
   return (
-    <div className="sales-page">
-      <div className="products-header">
-        <div>
-          <span className="page-eyebrow">{countSalesToday(data.sales)}</span>
-          <h1>Ventas</h1>
-          <p>Registra ventas y consulta los movimientos realizados</p>
-        </div>
-      </div>
+    <>
+      <PageHeader meta={countSalesToday(data.sales)} title="Ventas" />
 
       {success && (
-        <FeedbackMessage type="success" icon={<CheckCircle size={18} />}>
+        <FeedbackMessage type="success" icon={<CheckCircle size={16} />}>
           {success}
         </FeedbackMessage>
       )}
 
       {pageError && !saleToCancel && (
-        <FeedbackMessage type="error" icon={<AlertCircle size={18} />}>
+        <FeedbackMessage type="error" icon={<AlertCircle size={16} />}>
           {pageError}
         </FeedbackMessage>
       )}
@@ -151,17 +139,10 @@ function Sales() {
           title="Anular venta"
           message={
             <>
-              ¿Deseas anular la <strong>Venta #{saleToCancel.id}</strong> de{" "}
-              <strong>{saleToCancel.producto}</strong>?
+              ¿Anular la <strong>venta #{saleToCancel.id}</strong> de <strong>{saleToCancel.producto}</strong>?
             </>
           }
-          info={
-            <>
-              Esta operación no eliminará el registro del historial.
-              <br />
-              Las <strong>{saleToCancel.cantidad}</strong> unidades serán devueltas automáticamente al inventario.
-            </>
-          }
+          info={`La venta queda en el historial como anulada y las ${saleToCancel.cantidad} unidades vuelven al inventario.`}
           error={error}
           confirmLabel="Anular venta"
           busyLabel="Anulando..."
@@ -170,7 +151,7 @@ function Sales() {
           onCancel={closeCancelDialog}
         />
       )}
-    </div>
+    </>
   );
 }
 

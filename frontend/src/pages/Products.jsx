@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
-import { AlertTriangle, Package, Plus, Search, Trash2 } from "lucide-react";
+import { AlertTriangle, CheckCircle, Plus, Search, Trash2 } from "lucide-react";
 
 import { productsApi } from "../api/productsApi";
 import ConfirmDialog from "../components/ConfirmDialog";
 import FeedbackMessage from "../components/FeedbackMessage";
+import PageHeader from "../components/PageHeader";
 import ProductFormModal from "../components/products/ProductFormModal";
 import ProductsEmpty from "../components/products/ProductsEmpty";
 import ProductsTable from "../components/products/ProductsTable";
@@ -144,69 +145,65 @@ function Products() {
   const pageError = error || loadError;
   const showPageError = pageError && !formOpen && !productToDelete;
 
+  const inventoryMeta = listsLoading
+    ? "Cargando inventario…"
+    : `${formatPrice(getInventoryValue(lists.active))} en inventario · ${lists.active.length} activos`;
+
   return (
-    <div className="products-page">
-      <div className="products-header">
-        <div>
-          <span className="page-eyebrow">
-            {listsLoading ? "Inventario" : `Valor del inventario: ${formatPrice(getInventoryValue(lists.active))}`}
-          </span>
-          <h1>Productos</h1>
-          <p>Administra los productos disponibles en el catálogo.</p>
-        </div>
-
-        {!inTrash && (
-          <button className="primary-button" onClick={() => openForm(null)}>
-            <Plus size={18} />
-            Nuevo producto
-          </button>
-        )}
-      </div>
-
-      <ProductTabs
-        activeTab={activeTab}
-        activeCount={lists.active.length}
-        deletedCount={lists.deleted.length}
-        onChange={changeTab}
+    <>
+      <PageHeader
+        meta={inventoryMeta}
+        title="Productos"
+        actions={
+          !inTrash && (
+            <button type="button" className="btn btn--primary" onClick={() => openForm(null)}>
+              <Plus size={16} />
+              Nuevo producto
+            </button>
+          )
+        }
       />
 
-      {message && <FeedbackMessage type="success">{message}</FeedbackMessage>}
+      {message && (
+        <FeedbackMessage type="success" icon={<CheckCircle size={16} />}>
+          {message}
+        </FeedbackMessage>
+      )}
 
       {showPageError && (
-        <FeedbackMessage type="error" icon={<AlertTriangle size={18} />}>
+        <FeedbackMessage type="error" icon={<AlertTriangle size={16} />}>
           {pageError}
         </FeedbackMessage>
       )}
 
-      <div className="products-toolbar">
-        <div className="search-box">
-          <Search size={18} />
-          <input
-            type="text"
-            placeholder={inTrash ? "Buscar en la papelera..." : "Buscar productos activos..."}
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
+      <section className="panel panel--table">
+        <div className="toolbar">
+          <ProductTabs
+            activeTab={activeTab}
+            activeCount={lists.active.length}
+            deletedCount={lists.deleted.length}
+            onChange={changeTab}
           />
+
+          <div className="input-icon toolbar__search">
+            <Search size={16} />
+            <input
+              type="search"
+              className="input"
+              aria-label="Buscar productos"
+              placeholder={inTrash ? "Buscar en la papelera" : "Buscar por nombre o descripción"}
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+          </div>
         </div>
 
-        <div className="product-counter">
-          <Package size={18} />
-          {filteredProducts.length}
-          {inTrash ? " en papelera" : " productos activos"}
-        </div>
-      </div>
-
-      <div className="products-card">
         {listsLoading ? (
-          <div className="products-empty">
-            <p>Cargando productos...</p>
+          <div className="empty">
+            <p>Cargando productos…</p>
           </div>
         ) : filteredProducts.length === 0 ? (
-          <ProductsEmpty
-            inTrash={inTrash}
-            showCreate={!inTrash && lists.active.length === 0}
-            onCreate={() => openForm(null)}
-          />
+          <ProductsEmpty inTrash={inTrash} searching={search.trim() !== ""} onCreate={() => openForm(null)} />
         ) : (
           <ProductsTable
             products={filteredProducts}
@@ -217,20 +214,26 @@ function Products() {
             onRestore={restoreProduct}
           />
         )}
-      </div>
+
+        {!listsLoading && currentProducts.length > 0 && (
+          <div className="panel__footer">
+            Mostrando {filteredProducts.length} de {currentProducts.length}
+          </div>
+        )}
+      </section>
 
       {productToDelete && (
         <ConfirmDialog
           icon={Trash2}
-          title="Mover a papelera"
+          title="Mover a la papelera"
           message={
             <>
-              ¿Deseas mover <strong>{productToDelete.nombre}</strong> a la papelera?
+              ¿Mover <strong>{productToDelete.nombre}</strong> a la papelera?
             </>
           }
-          info="El producto no se eliminará permanentemente. Podrás restaurarlo posteriormente desde la papelera."
+          info="No se borra: deja de aparecer en el catálogo y en ventas, y se puede restaurar desde la papelera."
           error={error}
-          confirmLabel="Mover a papelera"
+          confirmLabel="Mover a la papelera"
           busyLabel="Moviendo..."
           busy={busy}
           onConfirm={deleteProduct}
@@ -247,7 +250,7 @@ function Products() {
           onClose={closeForm}
         />
       )}
-    </div>
+    </>
   );
 }
 

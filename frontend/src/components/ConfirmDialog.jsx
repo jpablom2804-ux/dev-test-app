@@ -7,29 +7,31 @@ import Modal from "./Modal";
 // Muestra el error dentro del cuadro, porque mientras está abierto tapa la página.
 function ConfirmDialog({ icon: Icon, title, message, info, error, confirmLabel, busyLabel, busy, onConfirm, onCancel }) {
   return (
-    <Modal className="delete-modal" onClose={onCancel}>
-      <div className="delete-modal-icon">
-        <Icon size={24} />
+    <Modal className="modal modal--sm" labelledBy="confirm-dialog-title" onClose={onCancel}>
+      <div className="modal__header">
+        <h2 className="modal__title modal__title--danger" id="confirm-dialog-title">
+          <Icon size={18} />
+          {title}
+        </h2>
       </div>
 
-      <div className="delete-modal-content">
-        <h2>{title}</h2>
+      <div className="modal__body">
         <p>{message}</p>
-        <div className="delete-info">{info}</div>
+        <div className="modal__note">{info}</div>
 
         {error && (
-          <FeedbackMessage type="error" icon={<AlertCircle size={18} />}>
+          <FeedbackMessage type="error" icon={<AlertCircle size={16} />}>
             {error}
           </FeedbackMessage>
         )}
       </div>
 
-      <div className="delete-modal-actions">
-        <button type="button" className="secondary-button" onClick={onCancel} disabled={busy}>
+      <div className="modal__footer">
+        <button type="button" className="btn btn--secondary" onClick={onCancel} disabled={busy}>
           Cancelar
         </button>
-        <button type="button" className="danger-button" onClick={onConfirm} disabled={busy}>
-          <Icon size={17} />
+        <button type="button" className="btn btn--danger" onClick={onConfirm} disabled={busy}>
+          <Icon size={16} />
           {busy ? busyLabel : confirmLabel}
         </button>
       </div>

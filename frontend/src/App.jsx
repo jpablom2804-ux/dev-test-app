@@ -3,12 +3,11 @@ import { Route, Routes } from "react-router-dom";
 
 import { authApi } from "./api/authApi";
 import { onUnauthorized } from "./api/client";
-import Sidebar from "./components/Sidebar";
+import AppHeader from "./components/AppHeader";
 import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
 import Products from "./pages/Products";
 import Sales from "./pages/Sales";
-import "./App.css";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -50,7 +49,7 @@ function App() {
   if (checkingSession) {
     return (
       <div className="session-loading">
-        <div className="session-loader" />
+        <div className="session-loading__spinner" />
         <p>Comprobando sesión...</p>
       </div>
     );
@@ -61,17 +60,17 @@ function App() {
   }
 
   return (
-    <div className="app-layout">
-      <Sidebar user={user} onLogout={handleLogout} loggingOut={loggingOut} />
+    <>
+      <AppHeader user={user} onLogout={handleLogout} loggingOut={loggingOut} />
 
-      <main className="main-content">
+      <main className="page">
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/products" element={<Products />} />
           <Route path="/sales" element={<Sales />} />
         </Routes>
       </main>
-    </div>
+    </>
   );
 }
 

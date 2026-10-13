@@ -1,4 +1,4 @@
-import { Package, Plus, ShoppingCart } from "lucide-react";
+import { Plus, ShoppingCart } from "lucide-react";
 
 // Devuelve el mensaje del primer dato inválido, o null si la venta se puede enviar.
 // El Backend vuelve a validar todo; esto solo evita una request que va a fallar.
@@ -44,26 +44,20 @@ function SaleForm({ products, selectedProduct, draft, saving, onChange, onSubmit
   };
 
   return (
-    <section className="sale-form-card">
-      <div className="sale-card-header">
-        <div className="sale-header-icon">
-          <ShoppingCart size={21} />
-        </div>
-        <div>
-          <h2>Registrar venta</h2>
-          <p>Selecciona un producto y la cantidad vendida</p>
-        </div>
+    <section className="panel">
+      <div className="panel__header">
+        <h2 className="panel__title">
+          <ShoppingCart size={16} />
+          Registrar venta
+        </h2>
       </div>
 
-      <form className="sale-form" onSubmit={handleSubmit}>
-        <div className="form-field">
-          <label htmlFor="sale-product">Producto</label>
-          <select
-            id="sale-product"
-            className="sales-select"
-            value={draft.productId}
-            onChange={updateField("productId")}
-          >
+      <form className="panel__body sale-form" onSubmit={handleSubmit}>
+        <div className="field">
+          <label className="field__label" htmlFor="sale-product">
+            Producto
+          </label>
+          <select id="sale-product" className="select" value={draft.productId} onChange={updateField("productId")}>
             <option value="">Seleccione un producto</option>
             {products.map((product) => (
               <option key={product.id} value={product.id} disabled={Number(product.stock) === 0}>
@@ -73,27 +67,14 @@ function SaleForm({ products, selectedProduct, draft, saving, onChange, onSubmit
           </select>
         </div>
 
-        {selectedProduct && (
-          <div className="selected-product-card">
-            <div className="selected-product-icon">
-              <Package size={20} />
-            </div>
-            <div>
-              <span>Producto seleccionado</span>
-              <strong>{selectedProduct.nombre}</strong>
-            </div>
-            <div className="selected-product-stock">
-              <span>Stock disponible</span>
-              <strong>{selectedProduct.stock}</strong>
-            </div>
-          </div>
-        )}
-
-        <div className="form-field">
-          <label htmlFor="sale-quantity">Cantidad</label>
+        <div className="field">
+          <label className="field__label" htmlFor="sale-quantity">
+            Cantidad
+          </label>
           <input
             id="sale-quantity"
             type="number"
+            className="input num"
             min="1"
             max={selectedProduct ? selectedProduct.stock : undefined}
             value={draft.quantity}
@@ -101,8 +82,8 @@ function SaleForm({ products, selectedProduct, draft, saving, onChange, onSubmit
           />
         </div>
 
-        <button type="submit" className="primary-button sale-submit-button" disabled={!canSubmit}>
-          <Plus size={18} />
+        <button type="submit" className="btn btn--primary btn--block" disabled={!canSubmit}>
+          <Plus size={16} />
           {saving ? "Registrando..." : "Registrar venta"}
         </button>
       </form>

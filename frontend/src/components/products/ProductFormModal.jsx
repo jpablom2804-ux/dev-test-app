@@ -36,94 +36,110 @@ function ProductFormModal({ product, saving, error, onSubmit, onClose }) {
   };
 
   return (
-    <Modal className="product-modal" onClose={onClose}>
-      <div className="modal-header-custom">
+    <Modal labelledBy="product-form-title" onClose={onClose}>
+      <div className="modal__header">
         <div>
-          <span className="page-eyebrow">{isEditing ? `Producto #${product.id}` : "Nuevo registro"}</span>
-          <h2>{isEditing ? "Editar producto" : "Nuevo producto"}</h2>
+          <span className="modal__eyebrow">{isEditing ? `Producto #${product.id}` : "Nuevo registro"}</span>
+          <h2 className="modal__title" id="product-form-title">
+            {isEditing ? "Editar producto" : "Nuevo producto"}
+          </h2>
         </div>
 
-        <button className="modal-close" onClick={onClose} disabled={saving}>
-          <X size={20} />
+        <button type="button" className="icon-btn icon-btn--ghost" aria-label="Cerrar" onClick={onClose} disabled={saving}>
+          <X size={18} />
         </button>
       </div>
 
       {/* Los límites coinciden con las validaciones del Backend y las columnas de MariaDB. */}
-      <form onSubmit={handleSubmit} className="product-modal-form">
-        <div className="form-field">
-          <label htmlFor="nombre">Nombre</label>
-          <input
-            id="nombre"
-            name="nombre"
-            type="text"
-            placeholder="Ej. Monitor Gaming"
-            value={form.nombre}
-            onChange={handleChange}
-            required
-            disabled={saving}
-            maxLength={100}
-          />
-        </div>
-
-        <div className="form-field">
-          <label htmlFor="descripcion">Descripción</label>
-          <textarea
-            id="descripcion"
-            name="descripcion"
-            placeholder="Descripción del producto"
-            value={form.descripcion}
-            onChange={handleChange}
-            disabled={saving}
-            rows="3"
-            maxLength={255}
-          />
-        </div>
-
-        <div className="form-row">
-          <div className="form-field">
-            <label htmlFor="precio">Precio</label>
+      <form onSubmit={handleSubmit}>
+        <div className="modal__body">
+          <div className="field">
+            <label className="field__label" htmlFor="nombre">
+              Nombre
+            </label>
             <input
-              id="precio"
-              name="precio"
-              type="number"
-              step="0.01"
-              min="0"
-              placeholder="0.00"
-              value={form.precio}
+              id="nombre"
+              name="nombre"
+              type="text"
+              className="input"
+              placeholder="Ej. Samsung S24 256GB"
+              value={form.nombre}
               onChange={handleChange}
               required
               disabled={saving}
+              maxLength={100}
             />
           </div>
 
-          <div className="form-field">
-            <label htmlFor="stock">Stock</label>
-            <input
-              id="stock"
-              name="stock"
-              type="number"
-              min="0"
-              step="1"
-              placeholder="0"
-              value={form.stock}
+          <div className="field">
+            <label className="field__label" htmlFor="descripcion">
+              Descripción
+            </label>
+            <textarea
+              id="descripcion"
+              name="descripcion"
+              className="textarea"
+              placeholder="Opcional"
+              value={form.descripcion}
               onChange={handleChange}
-              required
               disabled={saving}
+              rows="3"
+              maxLength={255}
             />
           </div>
+
+          <div className="field-row">
+            <div className="field">
+              <label className="field__label" htmlFor="precio">
+                Precio (USD)
+              </label>
+              <input
+                id="precio"
+                name="precio"
+                type="number"
+                className="input num"
+                step="0.01"
+                min="0"
+                placeholder="0.00"
+                value={form.precio}
+                onChange={handleChange}
+                required
+                disabled={saving}
+              />
+            </div>
+
+            <div className="field">
+              <label className="field__label" htmlFor="stock">
+                Stock
+              </label>
+              <input
+                id="stock"
+                name="stock"
+                type="number"
+                className="input num"
+                min="0"
+                step="1"
+                placeholder="0"
+                value={form.stock}
+                onChange={handleChange}
+                required
+                disabled={saving}
+              />
+            </div>
+          </div>
+
+          {error && (
+            <FeedbackMessage type="error" icon={<AlertTriangle size={16} />}>
+              {error}
+            </FeedbackMessage>
+          )}
         </div>
 
-        {error && (
-          <FeedbackMessage type="error" icon={<AlertTriangle size={18} />}>
-            {error}
-          </FeedbackMessage>
-        )}
-
-        <div className="modal-actions">
-          <button type="button" className="secondary-button" onClick={onClose} disabled={saving}>
+        <div className="modal__footer">
+          <button type="button" className="btn btn--secondary" onClick={onClose} disabled={saving}>
             Cancelar
           </button>
-          <button type="submit" className="primary-button" disabled={saving}>
+          <button type="submit" className="btn btn--primary" disabled={saving}>
             {submitLabel}
           </button>
         </div>

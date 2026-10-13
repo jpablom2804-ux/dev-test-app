@@ -1,88 +1,72 @@
-import { Package, Pencil, RotateCcw, Trash2 } from "lucide-react";
+import { Pencil, RotateCcw, Trash2 } from "lucide-react";
 
 import { formatPrice } from "../../utils/format";
-import { getStockStatus } from "../../utils/stock";
+import StockLevel from "../StockLevel";
 
-// Tabla de productos activos o de la papelera: cambian el estado y las acciones.
+// Tabla de productos activos o de la papelera: solo cambian las acciones.
 function ProductsTable({ products, inTrash, busy, onEdit, onDelete, onRestore }) {
   return (
-    <div className="table-responsive">
-      <table className="products-table">
+    <div className="table-wrap">
+      <table className="data-table">
         <thead>
           <tr>
             <th>Producto</th>
-            <th>Precio</th>
+            <th className="num">Precio</th>
             <th>Stock</th>
-            <th>Estado</th>
-            <th className="actions-column">Acciones</th>
+            <th className="data-table__actions-col">Acciones</th>
           </tr>
         </thead>
 
         <tbody>
           {products.map((product) => (
-            <ProductRow
-              key={product.id}
-              product={product}
-              inTrash={inTrash}
-              busy={busy}
-              onEdit={onEdit}
-              onDelete={onDelete}
-              onRestore={onRestore}
-            />
+            <tr key={product.id}>
+              <td className="data-table__name">
+                <strong>{product.nombre}</strong>
+                <span>{product.descripcion || "Sin descripción"}</span>
+              </td>
+
+              <td className="num">{formatPrice(product.precio)}</td>
+
+              <td>
+                <StockLevel stock={product.stock} />
+              </td>
+
+              <td>
+                <div className="data-table__actions">
+                  {inTrash ? (
+                    <button type="button" className="btn btn--secondary btn--sm" onClick={() => onRestore(product)} disabled={busy}>
+                      <RotateCcw size={14} />
+                      Restaurar
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        className="icon-btn"
+                        title="Editar producto"
+                        aria-label={`Editar ${product.nombre}`}
+                        onClick={() => onEdit(product)}
+                      >
+                        <Pencil size={15} />
+                      </button>
+                      <button
+                        type="button"
+                        className="icon-btn icon-btn--danger"
+                        title="Mover a la papelera"
+                        aria-label={`Mover ${product.nombre} a la papelera`}
+                        onClick={() => onDelete(product)}
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </>
+                  )}
+                </div>
+              </td>
+            </tr>
           ))}
         </tbody>
       </table>
     </div>
-  );
-}
-
-function ProductRow({ product, inTrash, busy, onEdit, onDelete, onRestore }) {
-  const stockStatus = getStockStatus(product.stock);
-
-  return (
-    <tr>
-      <td>
-        <div className="product-info">
-          <div className="product-avatar">
-            <Package size={19} />
-          </div>
-          <div>
-            <strong>{product.nombre}</strong>
-            <span>{product.descripcion || "Sin descripción"}</span>
-          </div>
-        </div>
-      </td>
-
-      <td className="price-cell">{formatPrice(product.precio)}</td>
-
-      <td>{product.stock}</td>
-
-      <td>
-        {inTrash ? (
-          <span className="stock-badge deleted-badge">En papelera</span>
-        ) : (
-          <span className={stockStatus.className}>{stockStatus.text}</span>
-        )}
-      </td>
-
-      <td>
-        {inTrash ? (
-          <button className="restore-button" onClick={() => onRestore(product)} disabled={busy}>
-            <RotateCcw size={16} />
-            Restaurar
-          </button>
-        ) : (
-          <div className="table-actions">
-            <button className="icon-button" title="Editar producto" onClick={() => onEdit(product)}>
-              <Pencil size={17} />
-            </button>
-            <button className="icon-button danger" title="Mover a papelera" onClick={() => onDelete(product)}>
-              <Trash2 size={17} />
-            </button>
-          </div>
-        )}
-      </td>
-    </tr>
   );
 }
 
