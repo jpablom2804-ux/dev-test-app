@@ -1,4 +1,48 @@
 -- ==================================================
+-- TABLA CATEGORIES
+-- ==================================================
+--
+-- Categorías de los productos (Smartphones, Laptops…).
+--
+-- Va en su propia tabla, y no como texto en products,
+-- para que no existan "Periféricos" y "perifericos"
+-- como si fueran categorías distintas, y para poder
+-- filtrar los productos de forma confiable.
+--
+-- Se crea antes que products porque products
+-- la referencia con una clave foránea.
+--
+
+CREATE TABLE IF NOT EXISTS categories (
+
+    id INT AUTO_INCREMENT PRIMARY KEY,
+
+    -- UNIQUE: no se puede repetir el nombre.
+    nombre VARCHAR(50)
+        NOT NULL
+        UNIQUE,
+
+    created_at TIMESTAMP
+        NOT NULL
+        DEFAULT CURRENT_TIMESTAMP
+);
+
+
+-- Categorías iniciales del catálogo.
+INSERT IGNORE INTO categories (nombre) VALUES
+    ('Smartphones'),
+    ('Laptops'),
+    ('Monitores'),
+    ('Periféricos'),
+    ('Componentes'),
+    ('Almacenamiento'),
+    ('Redes'),
+    ('Audio'),
+    ('Accesorios');
+
+
+
+-- ==================================================
 -- TABLA PRODUCTS
 -- ==================================================
 --
@@ -142,7 +186,22 @@ CREATE TABLE IF NOT EXISTS products (
     updated_at TIMESTAMP
         NOT NULL
         DEFAULT CURRENT_TIMESTAMP
-        ON UPDATE CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+
+
+    -- ==================================================
+    -- CATEGORÍA
+    -- ==================================================
+    --
+    -- Referencia a categories. Admite NULL para los
+    -- productos creados antes de que existieran las
+    -- categorías; la API la exige al crear o editar.
+    --
+    category_id INT NULL,
+
+    CONSTRAINT fk_products_category
+        FOREIGN KEY (category_id)
+        REFERENCES categories(id)
 );
 
 
