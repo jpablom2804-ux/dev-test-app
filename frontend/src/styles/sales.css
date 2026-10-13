@@ -1,0 +1,74 @@
+.sales-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.sale-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ==================================================
+   RESUMEN DE LA VENTA
+   ================================================== */
+
+.sale-summary__product {
+  margin-bottom: 14px;
+
+  color: var(--text-strong);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.sale-summary__rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sale-summary__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+
+  color: var(--text-soft);
+  font-size: 14px;
+}
+
+.sale-summary__row dd {
+  color: var(--text-strong);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* El total se separa con una línea y es el número más grande. */
+.sale-summary__row--total {
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  color: var(--text-strong);
+  font-weight: 600;
+}
+
+.sale-summary__row--total dd {
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.sale-summary__hint {
+  color: var(--text-soft);
+  font-size: 14px;
+}
+
+.sale-summary .alert {
+  margin-top: 16px;
+}
+
+@media (max-width: 900px) {
+  .sales-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

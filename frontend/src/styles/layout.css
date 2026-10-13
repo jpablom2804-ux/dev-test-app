@@ -1,0 +1,342 @@
+/* ==================================================
+   HEADER
+   Fijo arriba: la navegación sigue visible al bajar.
+   ================================================== */
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+
+  height: var(--header-height);
+
+  background: var(--header-bg);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(10px);
+}
+
+.app-header__inner {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+
+  max-width: var(--content-width);
+  height: 100%;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  color: var(--text-strong);
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.brand__mark {
+  display: grid;
+  place-items: center;
+
+  width: 28px;
+  height: 28px;
+
+  border-radius: 7px;
+  background: var(--brand-gradient);
+  box-shadow: 0 4px 12px var(--brand-glow);
+
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* La navegación ocupa todo el alto del header, para que la línea del
+   enlace activo quede pegada al borde inferior. */
+.app-nav {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+
+  height: 100%;
+
+  /* Si no entra, se desplaza de lado, pero sin dibujar barras de scroll. */
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+.app-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.app-nav__link {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  padding: 0 12px;
+
+  color: var(--text-soft);
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+
+  transition: color 0.15s ease;
+}
+
+.app-nav__link:hover {
+  color: var(--text-strong);
+}
+
+.app-nav__link.active {
+  color: var(--text-strong);
+}
+
+.app-nav__link.active::after {
+  content: "";
+
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 0;
+
+  height: 2px;
+  border-radius: 2px 2px 0 0;
+  background: var(--accent);
+}
+
+/* ==================================================
+   MENÚ DEL USUARIO
+   ================================================== */
+
+.user-menu {
+  position: relative;
+  margin-left: auto;
+}
+
+.user-menu__trigger {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  padding: 4px 8px 4px 4px;
+
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.user-menu__trigger:hover,
+.user-menu__trigger[aria-expanded="true"] {
+  background: var(--surface-2);
+  border-color: var(--border);
+}
+
+.user-menu__trigger svg {
+  color: var(--text-muted);
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+
+  width: 30px;
+  height: 30px;
+
+  border-radius: 50%;
+  background: var(--brand-gradient);
+
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.user-menu__panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+
+  min-width: 220px;
+  padding: 6px;
+
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-overlay);
+
+  animation: menu-in 0.12s ease;
+}
+
+.user-menu__info {
+  display: flex;
+  flex-direction: column;
+
+  margin-bottom: 6px;
+  padding: 8px 10px 12px;
+
+  border-bottom: 1px solid var(--border);
+}
+
+.user-menu__info strong {
+  color: var(--text-strong);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.user-menu__info span {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.user-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  width: 100%;
+  padding: 9px 10px;
+
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+
+  color: var(--text);
+  font-size: 14px;
+  text-align: left;
+
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+/* Rojo suave: deja claro que es una acción de salida. */
+.user-menu__item:hover:not(:disabled) {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+/* ==================================================
+   PÁGINA
+   ================================================== */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+
+  max-width: var(--content-width);
+  margin: 0 auto;
+  padding: 32px 24px 64px;
+}
+
+.page-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+/* Dato real de la página (fecha, valor del inventario, ventas de hoy). */
+.page-header__meta {
+  display: block;
+  margin-bottom: 6px;
+
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+}
+
+.page-header h1 {
+  font-size: 26px;
+  letter-spacing: -0.01em;
+}
+
+.page-header__actions {
+  display: flex;
+  gap: 10px;
+}
+
+/* Mientras se consulta /api/auth/me al abrir la app. */
+.session-loading {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 14px;
+
+  min-height: 100vh;
+
+  color: var(--text-soft);
+  font-size: 14px;
+}
+
+.session-loading__spinner {
+  width: 28px;
+  height: 28px;
+
+  border: 3px solid var(--surface-3);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 720px) {
+  .app-header__inner {
+    gap: 12px;
+    padding: 0 16px;
+  }
+
+  .brand__name,
+  .user-menu__name {
+    display: none;
+  }
+
+  .page {
+    padding: 24px 16px 48px;
+  }
+}
+
+/* En pantallas angostas la navegación muestra solo los íconos;
+   el texto queda para lectores de pantalla. */
+@media (max-width: 560px) {
+  .app-nav__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .app-nav__link {
+    padding: 0 10px;
+  }
+
+  .app-nav__link.active::after {
+    left: 6px;
+    right: 6px;
+  }
+}

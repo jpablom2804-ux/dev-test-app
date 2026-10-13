@@ -1,0 +1,127 @@
+/* Dos columnas: a la izquierda qué es el sistema, a la derecha el formulario. */
+.login {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 520px);
+  min-height: 100vh;
+}
+
+.login__brand {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 40px;
+
+  padding: 40px 56px;
+
+  background:
+    radial-gradient(circle at 15% 20%, rgba(99, 102, 241, 0.26) 0, transparent 45%),
+    radial-gradient(circle at 85% 90%, rgba(124, 58, 237, 0.18) 0, transparent 40%),
+    #070e22;
+  border-right: 1px solid var(--border);
+}
+
+.login__headline {
+  max-width: 18ch;
+
+  font-size: 38px;
+  letter-spacing: -0.02em;
+  line-height: 1.12;
+}
+
+.login__lead {
+  max-width: 46ch;
+  margin-top: 16px;
+
+  color: var(--text-soft);
+  font-size: 16px;
+}
+
+.login__facts {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  margin: 36px 0 0;
+  padding: 0;
+
+  list-style: none;
+}
+
+.login__facts li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+
+  color: var(--text);
+  font-size: 15px;
+}
+
+.login__facts svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--accent);
+}
+
+.login__footer {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+}
+
+.login__panel {
+  display: grid;
+  place-items: center;
+  padding: 40px 32px;
+}
+
+.login__card {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+
+  width: 100%;
+  max-width: 360px;
+}
+
+.login__card h2 {
+  font-size: 24px;
+}
+
+.login__card p {
+  margin-top: 6px;
+  color: var(--text-soft);
+  font-size: 14px;
+}
+
+.login__form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.login__form .btn {
+  height: 42px;
+  margin-top: 4px;
+}
+
+@media (max-width: 900px) {
+  .login {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .login__brand {
+    gap: 0;
+    padding: 28px 24px;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .login__headline {
+    font-size: 26px;
+  }
+
+  .login__facts,
+  .login__footer {
+    display: none;
+  }
+}

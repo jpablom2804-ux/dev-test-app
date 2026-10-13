@@ -1,0 +1,9 @@
+/* Punto de entrada de los estilos. El orden importa: primero las variables,
+   después la base, el armado de la página, los componentes y cada pantalla. */
+@import "./tokens.css";
+@import "./base.css";
+@import "./layout.css";
+@import "./components.css";
+@import "./dashboard.css";
+@import "./sales.css";
+@import "./login.css";

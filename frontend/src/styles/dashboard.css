@@ -1,0 +1,120 @@
+/* Franja de cifras en lugar de tarjetas: se lee de un vistazo, como un tablero. */
+.summary-strip {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.summary-strip__item {
+  padding: 16px 20px;
+  border-left: 1px solid var(--border);
+}
+
+.summary-strip__item:first-child {
+  border-left: 0;
+}
+
+.summary-strip dt {
+  color: var(--text-soft);
+  font-size: 13px;
+}
+
+.summary-strip dd {
+  margin-top: 6px;
+
+  color: var(--text-strong);
+  font-family: var(--font-mono);
+  font-size: 24px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Solo se pinta de alerta cuando hay algo que revisar. */
+.summary-strip__item--warning dd {
+  color: var(--warning);
+}
+
+.summary-strip__item--danger dd {
+  color: var(--danger);
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+/* Listas de los paneles: reposición y más vendidos. */
+.item-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.item-list li:last-child {
+  border-bottom: 0;
+}
+
+.item-list__name {
+  min-width: 0;
+  overflow: hidden;
+
+  color: var(--text-strong);
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.item-list__rank {
+  width: 22px;
+  flex-shrink: 0;
+
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.item-list__main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.item-list__value {
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  white-space: nowrap;
+}
+
+@media (max-width: 1000px) {
+  .summary-strip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .summary-strip__item:nth-child(n + 4) {
+    border-top: 1px solid var(--border);
+  }
+
+  .summary-strip__item:nth-child(4) {
+    border-left: 0;
+  }
+
+  .dashboard-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

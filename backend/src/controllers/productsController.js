@@ -3,8 +3,9 @@ const productsService = require("../services/productsService");
 // Los errores lanzados por el servicio llegan solos al errorHandler:
 // Express 5 captura las promesas rechazadas de los handlers async.
 
+// GET /api/products?categoryId=3 filtra por categoría; sin el parámetro, trae todos.
 async function list(req, res) {
-  res.json(await productsService.listActive());
+  res.json(await productsService.listActive(req.query.categoryId));
 }
 
 async function listDeleted(req, res) {
