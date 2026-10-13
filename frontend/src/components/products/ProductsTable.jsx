@@ -11,6 +11,7 @@ function ProductsTable({ products, inTrash, busy, onEdit, onDelete, onRestore })
         <thead>
           <tr>
             <th>Producto</th>
+            <th>Categoría</th>
             <th className="num">Precio</th>
             <th>Stock</th>
             <th className="data-table__actions-col">Acciones</th>
@@ -23,6 +24,10 @@ function ProductsTable({ products, inTrash, busy, onEdit, onDelete, onRestore })
               <td className="data-table__name">
                 <strong>{product.nombre}</strong>
                 <span>{product.descripcion || "Sin descripción"}</span>
+              </td>
+
+              <td className={product.categoria ? undefined : "data-table__muted"}>
+                {product.categoria ?? "Sin categoría"}
               </td>
 
               <td className="num">{formatPrice(product.precio)}</td>

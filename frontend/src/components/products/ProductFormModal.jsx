@@ -4,7 +4,7 @@ import { AlertTriangle, X } from "lucide-react";
 import FeedbackMessage from "../FeedbackMessage";
 import Modal from "../Modal";
 
-const EMPTY_FORM = { nombre: "", descripcion: "", precio: "", stock: "" };
+const EMPTY_FORM = { nombre: "", descripcion: "", category_id: "", precio: "", stock: "" };
 
 function toForm(product) {
   if (!product) {
@@ -14,6 +14,7 @@ function toForm(product) {
   return {
     nombre: product.nombre,
     descripcion: product.descripcion || "",
+    category_id: product.category_id ?? "",
     precio: product.precio,
     stock: product.stock,
   };
@@ -21,7 +22,7 @@ function toForm(product) {
 
 // Formulario para crear (product = null) o editar un producto.
 // Maneja sus propios campos y entrega el resultado con onSubmit.
-function ProductFormModal({ product, saving, error, onSubmit, onClose }) {
+function ProductFormModal({ product, categories, saving, error, onSubmit, onClose }) {
   const [form, setForm] = useState(() => toForm(product));
   const isEditing = Boolean(product);
   const submitLabel = saving ? "Guardando..." : isEditing ? "Guardar cambios" : "Crear producto";
@@ -69,6 +70,28 @@ function ProductFormModal({ product, saving, error, onSubmit, onClose }) {
               disabled={saving}
               maxLength={100}
             />
+          </div>
+
+          <div className="field">
+            <label className="field__label" htmlFor="category_id">
+              Categoría
+            </label>
+            <select
+              id="category_id"
+              name="category_id"
+              className="select"
+              value={form.category_id}
+              onChange={handleChange}
+              required
+              disabled={saving}
+            >
+              <option value="">Selecciona una categoría</option>
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.nombre}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="field">

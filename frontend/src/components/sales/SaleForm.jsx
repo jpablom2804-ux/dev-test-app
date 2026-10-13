@@ -18,6 +18,23 @@ function validateSale({ product_id, cantidad }, selectedProduct) {
   return null;
 }
 
+// Agrupa los productos por categoría, ambos en orden alfabético, para el selector.
+// Los que no tienen categoría van al final.
+function groupByCategory(products) {
+  const groups = new Map();
+
+  for (const product of [...products].sort((a, b) => a.nombre.localeCompare(b.nombre))) {
+    const category = product.categoria ?? "Sin categoría";
+    groups.set(category, [...(groups.get(category) ?? []), product]);
+  }
+
+  return [...groups.entries()].sort(([a], [b]) => {
+    if (a === "Sin categoría") return 1;
+    if (b === "Sin categoría") return -1;
+    return a.localeCompare(b);
+  });
+}
+
 // Formulario controlado: el producto y la cantidad (`draft`) viven en la página,
 // porque el resumen de la venta también los necesita.
 function SaleForm({ products, selectedProduct, draft, saving, onChange, onSubmit, onError }) {
@@ -59,10 +76,14 @@ function SaleForm({ products, selectedProduct, draft, saving, onChange, onSubmit
           </label>
           <select id="sale-product" className="select" value={draft.productId} onChange={updateField("productId")}>
             <option value="">Seleccione un producto</option>
-            {products.map((product) => (
-              <option key={product.id} value={product.id} disabled={Number(product.stock) === 0}>
-                {`${product.nombre} — Stock: ${product.stock}`}
-              </option>
+            {groupByCategory(products).map(([category, items]) => (
+              <optgroup key={category} label={category}>
+                {items.map((product) => (
+                  <option key={product.id} value={product.id} disabled={Number(product.stock) === 0}>
+                    {`${product.nombre} — Stock: ${product.stock}`}
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </select>
         </div>

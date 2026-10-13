@@ -1,4 +1,5 @@
 import { CheckCircle, History, PackageSearch, Trophy } from "lucide-react";
+import { Link } from "react-router-dom";
 
 import { productsApi } from "../api/productsApi";
 import { salesApi } from "../api/salesApi";
@@ -66,7 +67,13 @@ function Metric({ label, value, tone }) {
   );
 }
 
+// Muestra solo los más urgentes, para que el panel no crezca sin límite.
+const RESTOCK_VISIBLE = 6;
+
 function RestockPanel({ products }) {
+  const visible = products.slice(0, RESTOCK_VISIBLE);
+  const hidden = products.length - visible.length;
+
   return (
     <section className="panel">
       <div className="panel__header">
@@ -85,13 +92,19 @@ function RestockPanel({ products }) {
         </div>
       ) : (
         <ul className="item-list">
-          {products.map((product) => (
+          {visible.map((product) => (
             <li key={product.id}>
               <span className="item-list__name">{product.nombre}</span>
               <StockLevel stock={product.stock} />
             </li>
           ))}
         </ul>
+      )}
+
+      {hidden > 0 && (
+        <div className="panel__footer">
+          y {hidden} más con stock bajo · <Link to="/products">Ver en Productos</Link>
+        </div>
       )}
     </section>
   );

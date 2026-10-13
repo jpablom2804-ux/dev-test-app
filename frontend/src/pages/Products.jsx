@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { AlertTriangle, CheckCircle, Plus, Search, Trash2 } from "lucide-react";
 
+import { categoriesApi } from "../api/categoriesApi";
 import { productsApi } from "../api/productsApi";
 import ConfirmDialog from "../components/ConfirmDialog";
 import FeedbackMessage from "../components/FeedbackMessage";
@@ -14,15 +15,24 @@ import { formatPrice } from "../utils/format";
 import { getInventoryValue } from "../utils/stock";
 
 async function loadProductLists() {
-  const [active, deleted] = await Promise.all([productsApi.list(), productsApi.listDeleted()]);
-  return { active, deleted };
+  const [active, deleted, categories] = await Promise.all([
+    productsApi.list(),
+    productsApi.listDeleted(),
+    categoriesApi.list(),
+  ]);
+  return { active, deleted, categories };
 }
 
-function matchesSearch(product, text) {
-  return (
+// La búsqueda y el filtro se aplican en el navegador: la lista ya está cargada
+// y así responden al instante, sin una request por cada tecla.
+function matchesFilters(product, text, categoryId) {
+  const matchesCategory = !categoryId || Number(product.category_id) === Number(categoryId);
+  const matchesText =
+    !text ||
     product.nombre.toLowerCase().includes(text) ||
-    (product.descripcion || "").toLowerCase().includes(text)
-  );
+    (product.descripcion || "").toLowerCase().includes(text);
+
+  return matchesCategory && matchesText;
 }
 
 function Products() {
@@ -31,10 +41,11 @@ function Products() {
     loading: listsLoading,
     error: loadError,
     reload,
-  } = useApiData(loadProductLists, { active: [], deleted: [] });
+  } = useApiData(loadProductLists, { active: [], deleted: [], categories: [] });
 
   const [activeTab, setActiveTab] = useState("active");
   const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
   const [formOpen, setFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [productToDelete, setProductToDelete] = useState(null);
@@ -47,8 +58,10 @@ function Products() {
 
   const filteredProducts = useMemo(() => {
     const text = search.toLowerCase().trim();
-    return text ? currentProducts.filter((product) => matchesSearch(product, text)) : currentProducts;
-  }, [currentProducts, search]);
+    return currentProducts.filter((product) => matchesFilters(product, text, categoryFilter));
+  }, [currentProducts, search, categoryFilter]);
+
+  const filtering = search.trim() !== "" || categoryFilter !== "";
 
   // Ejecuta una operación sobre el Backend: bloquea los botones mientras dura,
   // muestra el resultado y recarga las listas. Devuelve true si salió bien.
@@ -94,7 +107,12 @@ function Products() {
 
   const saveProduct = async (form) => {
     // Los inputs entregan texto; el Backend espera números.
-    const product = { ...form, precio: Number(form.precio), stock: Number(form.stock) };
+    const product = {
+      ...form,
+      precio: Number(form.precio),
+      stock: Number(form.stock),
+      category_id: Number(form.category_id),
+    };
 
     const saved = await runAction(
       () => (editingProduct ? productsApi.update(editingProduct.id, product) : productsApi.create(product)),
@@ -185,16 +203,32 @@ function Products() {
             onChange={changeTab}
           />
 
-          <div className="input-icon toolbar__search">
-            <Search size={16} />
-            <input
-              type="search"
-              className="input"
-              aria-label="Buscar productos"
-              placeholder={inTrash ? "Buscar en la papelera" : "Buscar por nombre o descripción"}
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-            />
+          <div className="toolbar__filters">
+            <select
+              className="select toolbar__category"
+              aria-label="Filtrar por categoría"
+              value={categoryFilter}
+              onChange={(event) => setCategoryFilter(event.target.value)}
+            >
+              <option value="">Todas las categorías</option>
+              {lists.categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.nombre}
+                </option>
+              ))}
+            </select>
+
+            <div className="input-icon toolbar__search">
+              <Search size={16} />
+              <input
+                type="search"
+                className="input"
+                aria-label="Buscar productos"
+                placeholder={inTrash ? "Buscar en la papelera" : "Buscar por nombre o descripción"}
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+              />
+            </div>
           </div>
         </div>
 
@@ -203,7 +237,7 @@ function Products() {
             <p>Cargando productos…</p>
           </div>
         ) : filteredProducts.length === 0 ? (
-          <ProductsEmpty inTrash={inTrash} searching={search.trim() !== ""} onCreate={() => openForm(null)} />
+          <ProductsEmpty inTrash={inTrash} searching={filtering} onCreate={() => openForm(null)} />
         ) : (
           <ProductsTable
             products={filteredProducts}
@@ -244,6 +278,7 @@ function Products() {
       {formOpen && (
         <ProductFormModal
           product={editingProduct}
+          categories={lists.categories}
           saving={busy}
           error={error}
           onSubmit={saveProduct}
