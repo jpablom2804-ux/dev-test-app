@@ -90,9 +90,27 @@ MariaDB
 
 ---
 
+# Arquitectura del Frontend
+
+El Frontend sigue la misma idea de separar responsabilidades:
+
+```text
+pages/        coordinan: estado de la pantalla y llamadas a la API
+  ↓
+components/   solo muestran y avisan con eventos (onEdit, onDelete…)
+  ↓
+api/          único lugar que hace fetch
+```
+
+- **Un solo cliente HTTP** (`api/client.js`): maneja JSON, errores de red, respuestas que no son JSON (por ejemplo un 502 de Nginx) y la sesión vencida: un 401 en una ruta protegida devuelve al login.
+- **Validación en dos capas:** el formulario valida para dar una buena experiencia, y el Backend vuelve a validar todo.
+- **Estilos propios** en `src/styles/`: las variables de diseño (colores, tipografía, radios) están en `tokens.css`, y el resto de los estilos las usa.
+
+---
+
 # Tecnologías utilizadas
 
-- **Frontend:** React, Vite, React Router, JavaScript, Lucide React y CSS.
+- **Frontend:** React, Vite, React Router, JavaScript, Lucide React y CSS propio (sin frameworks de estilos), con las fuentes IBM Plex Sans e IBM Plex Mono.
 - **Backend:** Node.js, Express.js, JWT, bcryptjs, express-rate-limit y mariadb.
 - **Base de datos:** MariaDB 11.
 - **Servidor web / Reverse Proxy:** Nginx.
@@ -144,7 +162,8 @@ Permite:
 Visualizar productos
 Crear productos
 Editar productos
-Buscar productos
+Clasificar productos por categoría
+Buscar y filtrar por categoría
 Mover productos a papelera
 Restaurar productos
 Consultar estado del stock
@@ -277,10 +296,9 @@ El Dashboard muestra información general del catálogo y las ventas.
 Actualmente presenta:
 
 ```text
-Total de productos
-Unidades vendidas
-Productos con stock bajo
-Productos sin stock
+Productos activos, unidades vendidas, valor del inventario,
+productos con stock bajo y agotados (franja de cifras)
+Productos que necesitan reposición, con su nivel de stock
 Productos más vendidos
 Ventas recientes
 ```
@@ -295,7 +313,19 @@ estado = 'completada'
 
 # Base de datos
 
-El sistema utiliza tres tablas principales.
+El sistema utiliza cuatro tablas.
+
+## categories
+
+```text
+id
+nombre
+created_at
+```
+
+`nombre` es único: no pueden existir "Periféricos" y "perifericos" como categorías distintas.
+
+---
 
 ## products
 
@@ -308,9 +338,12 @@ stock
 activo
 created_at
 updated_at
+category_id
 ```
 
 `activo` permite implementar Soft Delete.
+
+`category_id` es una clave foránea relacionada con `categories.id`. Admite `NULL` para productos creados antes de que existieran las categorías; la API la exige al crear o editar.
 
 ---
 
@@ -348,16 +381,14 @@ anulada_at
 products.id
 ```
 
-Relación:
+Relaciones:
 
 ```text
-products
-   │
-   │ id
-   │
-   ▼
-sales.product_id
+categories ──< products ──< sales
+   id          category_id    product_id
 ```
+
+Una categoría tiene muchos productos, y un producto tiene muchas ventas.
 
 ---
 
@@ -385,13 +416,26 @@ Cierra la sesión y elimina la cookie de autenticación.
 
 ---
 
+## Categorías
+
+```http
+GET /api/categories
+```
+
+Obtiene las categorías, ordenadas por nombre.
+
+---
+
 ## Productos
 
 ```http
 GET /api/products
+GET /api/products?categoryId=3
 ```
 
-Obtiene los productos activos.
+Obtiene los productos activos, con su categoría. Con `categoryId` devuelve solo los de esa categoría.
+
+Al crear o editar, el JSON incluye `category_id`; la API responde 400 si falta o si la categoría no existe.
 
 ```http
 GET /api/products/deleted
@@ -648,6 +692,7 @@ se monta dentro del contenedor en:
 Este archivo permite crear inicialmente las tablas:
 
 ```text
+categories (con las categorías iniciales)
 products
 users
 sales
@@ -657,7 +702,20 @@ Los scripts dentro de `/docker-entrypoint-initdb.d/` se ejecutan cuando MariaDB 
 
 Si el volumen `mariadb_data` ya existe, modificar `init.sql` no modifica automáticamente la base de datos que ya está funcionando.
 
-Para cambios posteriores en un entorno existente se deben ejecutar las migraciones o instrucciones SQL correspondientes.
+## Migraciones
+
+Para aplicar cambios de estructura a una base que ya existe, sin perder datos, están las migraciones de `database/migrations/`. Cada una se puede ejecutar más de una vez sin efectos.
+
+```bash
+docker exec -i dev-test-db sh -c 'mariadb -u"$MARIADB_USER" -p"$MARIADB_PASSWORD" "$MARIADB_DATABASE"' \
+  < database/migrations/001_add_categories.sql
+```
+
+| Migración | Qué hace |
+| --- | --- |
+| `001_add_categories.sql` | Crea `categories` con las categorías iniciales y agrega `products.category_id` con su clave foránea |
+
+Una base creada desde cero con el `init.sql` actual ya incluye estos cambios.
 
 ---
 
@@ -751,6 +809,21 @@ docker compose exec backend npm run create-user -- admin 'una-contraseña-segura
 El script (`backend/src/scripts/createUser.js`) reutiliza la misma lógica que la API: valida los datos, guarda la contraseña como hash bcrypt y avisa si el usuario ya existe.
 
 Después se puede iniciar sesión en `http://localhost:8080` con ese usuario y contraseña.
+
+---
+
+# Cargar datos de demostración
+
+Para probar la aplicación con un catálogo realista:
+
+```bash
+docker compose exec backend npm run seed-demo -- --reset
+```
+
+Carga 30 productos en 9 categorías, con variantes como "iPhone 18 Pro 256GB" e "iPhone 18 Pro 1TB", algunos con stock bajo y dos agotados, y 20 ventas de los últimos 6 días (2 anuladas).
+
+- `--reset` borra antes **todos los productos y ventas**. Los usuarios no se tocan. Sin `--reset`, el script se niega a ejecutarse si ya hay productos.
+- El script (`backend/src/scripts/seedDemo.js`) reutiliza los services de la API: los productos pasan las mismas validaciones y cada venta descuenta stock dentro de la misma transacción.
 
 ---
 
@@ -949,17 +1022,18 @@ dev-test-app/
 │       │   ├── requestLogger.js
 │       │   └── errorHandler.js  respuesta única para errores y 404
 │       │
-│       ├── controllers/         authController, productsController, salesController
-│       ├── services/            authService, productsService, salesService
-│       ├── repositories/        usersRepository, productsRepository, salesRepository,
-│       │                        withTransaction
+│       ├── controllers/         auth, categories, products, sales
+│       ├── services/            auth, categories, products, sales + validators.js
+│       ├── repositories/        users, categories, products, sales + withTransaction
 │       ├── errors/
 │       │   └── HttpError.js
 │       └── scripts/
-│           └── createUser.js    crea usuarios desde la terminal
+│           ├── createUser.js    crea usuarios desde la terminal
+│           └── seedDemo.js      carga el catálogo de demostración
 │
 ├── database/
-│   └── init.sql
+│   ├── init.sql                 crea las tablas en una base nueva
+│   └── migrations/              cambios para una base que ya existe
 │
 ├── frontend/
 │   ├── Dockerfile
@@ -967,18 +1041,22 @@ dev-test-app/
 │   ├── package.json
 │   │
 │   └── src/
-│       ├── App.jsx
-│       ├── App.css
 │       ├── main.jsx
+│       ├── App.jsx              sesión, header y rutas
 │       │
-│       ├── components/
-│       │   └── Sidebar.jsx
+│       ├── api/                 client.js + authApi, categoriesApi, productsApi, salesApi
+│       ├── hooks/
+│       │   └── useApiData.js    carga y recarga los datos de cada página
+│       ├── utils/               format.js (fechas, precios), stock.js (reglas de stock)
 │       │
-│       └── pages/
-│           ├── Login.jsx
-│           ├── Dashboard.jsx
-│           ├── Products.jsx
-│           └── Sales.jsx
+│       ├── components/          AppHeader, UserMenu, PageHeader, Modal, ConfirmDialog,
+│       │   │                    FeedbackMessage, StockLevel
+│       │   ├── products/        ProductTabs, ProductsTable, ProductFormModal, ProductsEmpty
+│       │   └── sales/           SaleForm, SaleSummary, SalesHistory
+│       │
+│       ├── pages/               Login, Dashboard, Products, Sales
+│       │
+│       └── styles/              tokens, base, layout, components y uno por pantalla
 │
 ├── compose.yaml
 ├── .gitignore
