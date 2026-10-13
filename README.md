@@ -180,6 +180,8 @@ activo = 0 → producto en papelera
 
 Esto permite conservar relaciones e historial.
 
+El nombre de un producto no se puede repetir entre los productos activos, porque identifica al producto en toda la aplicación (selector de ventas, historial, Dashboard). Las variantes van en el nombre, por ejemplo `iPhone 18 Pro 256GB` e `iPhone 18 Pro 1TB`. La comparación ignora mayúsculas, acentos y espacios finales, y los productos en la papelera no cuentan.
+
 ---
 
 # Gestión de ventas
@@ -535,7 +537,8 @@ Recurso no encontrado.
 
 409 Conflict
 La operación entra en conflicto con el estado actual.
-Ejemplo: intentar anular una venta ya anulada.
+Ejemplos: anular una venta ya anulada, o crear un producto
+con el nombre de otro producto activo.
 
 429 Too Many Requests
 Demasiados intentos de inicio de sesión.
@@ -860,6 +863,8 @@ Contraseñas almacenadas mediante bcrypt
 JWT firmado
 Cookie HttpOnly
 Rate Limiting en login
+Mismo mensaje y mismo tiempo de respuesta si el usuario no existe
+o si la contraseña es incorrecta (no se puede deducir qué usuarios existen)
 Consultas SQL parametrizadas
 Variables sensibles mediante .env
 Backend protegido mediante middleware de autenticación
