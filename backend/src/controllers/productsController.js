@@ -16,6 +16,8 @@ async function getById(req, res) {
   res.json(await productsService.getById(req.params.id));
 }
 
+// FLUJO 6 · Le pasa req.body al service sin revisarlo y responde 201 con el id.
+// Siguiente: Ctrl+clic en "create" de productsService.create.
 async function create(req, res) {
   const id = await productsService.create(req.body);
   res.status(201).json({ message: "Producto creado correctamente", id });

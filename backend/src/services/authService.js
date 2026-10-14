@@ -27,6 +27,9 @@ function requireCredentials({ username, password } = {}) {
 
 // Verifica las credenciales y devuelve el JWT de la sesión
 // junto con los datos del usuario que se pueden enviar al cliente.
+// FLUJO 7 · Las reglas del login. Siguiente: Ctrl+clic en "findByUsername".
+// Después, de vuelta aquí: bcrypt.compare y jwt.sign. El resultado vuelve al
+// controller con return; si algo falla, el HttpError va directo a errorHandler.
 async function login(credentials) {
   const username = requireCredentials(credentials);
   const { password } = credentials;

@@ -10,6 +10,9 @@ const cookieOptions = {
   path: "/",
 };
 
+// FLUJO 6 · El controller habla HTTP: le pasa req.body al service y, con lo que
+// devuelve, pone la cookie y responde con res.
+// Siguiente: Ctrl+clic en "login" de authService.login.
 async function login(req, res) {
   const { token, user } = await authService.login(req.body);
   res.cookie(authCookieName, token, cookieOptions);

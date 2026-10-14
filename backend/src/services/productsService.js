@@ -121,6 +121,9 @@ async function getById(rawId) {
   return product;
 }
 
+// FLUJO 7 · Las reglas antes de guardar: valida los datos (400), que la categoría
+// exista (400) y que el nombre no esté repetido (409).
+// Siguiente: Ctrl+clic en "create" de productsRepository.create.
 async function create(body) {
   const product = toProductData(body);
   await ensureCategoryExists(product.category_id);

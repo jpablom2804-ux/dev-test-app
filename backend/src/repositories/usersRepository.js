@@ -1,5 +1,7 @@
 const pool = require("../db");
 
+// FLUJO 8 · El único lugar con SQL: consulta MariaDB (contenedor db) y devuelve la
+// fila con return. Desde aquí la respuesta vuelve: service → controller → res.
 // Incluye password_hash: solo sirve para verificar credenciales
 // y nunca debe enviarse al cliente.
 async function findByUsername(username) {
