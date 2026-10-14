@@ -4,7 +4,7 @@ function notFound(req, res) {
   res.status(404).json({ error: "Recurso no encontrado" });
 }
 
-// FLUJO · Errores: aquí termina cualquier error lanzado en el camino, desde el
+// FLUJO ERROR · Aquí termina cualquier error lanzado en el camino, desde el
 // guardia hasta el repository, sin try/catch en cada capa (lo hace Express 5).
 // Express reconoce el manejador de errores porque recibe 4 parámetros,
 // por eso `next` debe declararse aunque no se use.
