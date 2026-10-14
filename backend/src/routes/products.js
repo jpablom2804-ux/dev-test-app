@@ -4,7 +4,7 @@ const productsController = require("../controllers/productsController");
 
 const router = express.Router();
 
-// FLUJO 4 · Método + URL exactos → función del controller.
+// FLUJO PROD 5 · Método + URL exactos → función del controller.
 // Siguiente: Ctrl+clic en el nombre de la función, por ejemplo "create" en
 // productsController.create (la que atiende POST /api/products).
 router.get("/", productsController.list);

@@ -86,7 +86,7 @@ async function existsActiveByName(nombre, excludeId = 0) {
   return rows.length > 0;
 }
 
-// FLUJO 8 · El INSERT en MariaDB (contenedor db). El id vuelve con return:
+// FLUJO PROD 8 · El INSERT en MariaDB (contenedor db). El id vuelve con return:
 // repository → service → controller, que responde 201.
 // Devuelve el ID generado por MariaDB.
 async function create({ nombre, descripcion, precio, stock, category_id }) {

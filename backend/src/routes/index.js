@@ -9,9 +9,10 @@ const salesRouter = require("./sales");
 
 const router = express.Router();
 
-// FLUJO 3 · Elige el grupo de rutas según el inicio de la URL.
-// Siguiente: Ctrl+clic en el archivo del grupo, arriba: "./auth", "./products"…
-// Las rutas protegidas pasan antes por authenticateToken: Ctrl+clic en "../middleware/auth".
+// Elige el grupo de rutas según el inicio de la URL.
+// FLUJO LOGIN 3 · /api/auth es pública. Siguiente: Ctrl+clic en "./auth" (arriba).
+// FLUJO PROD 3 · /api/products pasa primero por el guardia authenticateToken.
+// Siguiente: Ctrl+clic en "../middleware/auth" (arriba).
 
 // Rutas públicas.
 router.use("/api/health", healthRouter);

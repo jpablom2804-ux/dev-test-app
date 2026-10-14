@@ -6,9 +6,9 @@ const HttpError = require("../errors/HttpError");
 // Protege una ruta: exige un JWT válido en la cookie de sesión y deja
 // su contenido ({ userId, username, role }) en req.user.
 // Los errores que lanza llegan al errorHandler como cualquier otro.
-// FLUJO 5 · Guardia de /api/categories, /api/products y /api/sales: sin un JWT
-// válido lanza 401 y la request no sigue. Si está bien, next() pasa al archivo
-// de rutas del grupo (routes/products.js, por ejemplo).
+// FLUJO PROD 4 · Guardia de /api/categories, /api/products y /api/sales: sin un JWT
+// válido lanza 401 y la request no sigue. Si está bien, next() pasa al archivo de
+// rutas del grupo. Siguiente: vuelve a routes/index.js (Alt+←) y Ctrl+clic en "./products".
 function authenticateToken(req, res, next) {
   const token = req.cookies?.[authCookieName];
 
